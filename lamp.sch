@@ -23,6 +23,8 @@ F 0 "U4" H 6900 4015 50  0000 C CNN
 F 1 "TPS54620" H 6900 3924 50  0000 C CNN
 F 2 "Package_DFN_QFN:Texas_S-PVQFN-N14_ThermalVias" H 6900 3500 50  0001 C CNN
 F 3 "" H 6900 3500 50  0001 C CNN
+F 4 "TI" H 0   0   50  0001 C CNN "MFR"
+F 5 "TPS54620RGYT" H 0   0   50  0001 C CNN "MPN"
 	1    6900 3500
 	1    0    0    -1  
 $EndComp
@@ -57,9 +59,11 @@ L MCU_ST_STM32F0:STM32F030F4Px U1
 U 1 1 5B36AAB9
 P 2350 3900
 F 0 "U1" H 2700 4550 50  0000 C CNN
-F 1 "STM32F030F4Px" H 2300 3850 50  0000 C CNN
+F 1 "STM32F030F4P6" H 2300 3850 50  0000 C CNN
 F 2 "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm" H 1950 3200 50  0001 R CNN
 F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00088500.pdf" H 2350 3900 50  0001 C CNN
+F 4 "ST Micro" H 0   0   50  0001 C CNN "MFR"
+F 5 "STM32F030F4P6" H 0   0   50  0001 C CNN "MPN"
 	1    2350 3900
 	1    0    0    -1  
 $EndComp
@@ -273,6 +277,8 @@ F 0 "U3" H 4850 1742 50  0000 C CNN
 F 1 "MIC5205-3.3" H 4850 1651 50  0000 C CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 4850 1725 50  0001 C CNN
 F 3 "http://ww1.microchip.com/downloads/en/devicedoc/mic5205.pdf" H 4850 1400 50  0001 C CNN
+F 4 "Microchip" H 0   0   50  0001 C CNN "MFR"
+F 5 "MIC5205-3.3YM5-TR" H 0   0   50  0001 C CNN "MPN"
 	1    4850 1400
 	1    0    0    -1  
 $EndComp
@@ -601,7 +607,6 @@ Wire Wire Line
 Text Label 6050 5450 0    50   ~ 0
 SETPOINT
 NoConn ~ 2850 4000
-NoConn ~ 2850 4100
 NoConn ~ 2850 4200
 NoConn ~ 1850 4200
 NoConn ~ 1850 4300
@@ -691,31 +696,31 @@ $EndComp
 $Comp
 L Connector:Test_Point TP2
 U 1 1 5B39E639
-P 2100 5850
-F 0 "TP2" V 2054 6038 50  0000 L CNN
-F 1 "Test_Point" V 2145 6038 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2300 5850 50  0001 C CNN
-F 3 "~" H 2300 5850 50  0001 C CNN
-	1    2100 5850
+P 2150 6650
+F 0 "TP2" V 2104 6838 50  0000 L CNN
+F 1 "Test_Point" V 2195 6838 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2350 6650 50  0001 C CNN
+F 3 "~" H 2350 6650 50  0001 C CNN
+	1    2150 6650
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	1650 5850 2100 5850
-Text Label 1650 5850 0    50   ~ 0
+	1700 6650 2150 6650
+Text Label 1700 6650 0    50   ~ 0
 SWDIO
 Wire Wire Line
-	1650 6050 2100 6050
-Text Label 1650 6050 0    50   ~ 0
+	1700 6850 2150 6850
+Text Label 1700 6850 0    50   ~ 0
 SWCLK
 $Comp
 L Connector:Test_Point TP3
 U 1 1 5B3A1EF7
-P 2100 6050
-F 0 "TP3" V 2054 6238 50  0000 L CNN
-F 1 "Test_Point" V 2145 6238 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2300 6050 50  0001 C CNN
-F 3 "~" H 2300 6050 50  0001 C CNN
-	1    2100 6050
+P 2150 6850
+F 0 "TP3" V 2104 7038 50  0000 L CNN
+F 1 "Test_Point" V 2195 7038 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2350 6850 50  0001 C CNN
+F 3 "~" H 2350 6850 50  0001 C CNN
+	1    2150 6850
 	0    1    1    0   
 $EndComp
 $Comp
@@ -726,6 +731,8 @@ F 0 "U2" H 4700 6150 50  0000 C CNN
 F 1 "LMV321" H 4800 6050 50  0000 C CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 4650 5850 50  0001 L CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lmv324.pdf" H 4650 5850 50  0001 C CNN
+F 4 "TI" H 0   0   50  0001 C CNN "MFR"
+F 5 "LMV321M5X" H 0   0   50  0001 C CNN "MPN"
 	1    4650 5850
 	-1   0    0    -1  
 $EndComp
@@ -906,27 +913,27 @@ Wire Wire Line
 $Comp
 L Connector:Test_Point TP4
 U 1 1 5B3C84C4
-P 2100 6250
-F 0 "TP4" V 2054 6438 50  0000 L CNN
-F 1 "Test_Point" V 2145 6438 50  0000 L CNN
-F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2300 6250 50  0001 C CNN
-F 3 "~" H 2300 6250 50  0001 C CNN
-	1    2100 6250
+P 2150 7050
+F 0 "TP4" V 2104 7238 50  0000 L CNN
+F 1 "Test_Point" V 2195 7238 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2350 7050 50  0001 C CNN
+F 3 "~" H 2350 7050 50  0001 C CNN
+	1    2150 7050
 	0    1    1    0   
 $EndComp
 $Comp
 L power:GND #PWR08
 U 1 1 5B3C9FC4
-P 1750 6250
-F 0 "#PWR08" H 1750 6000 50  0001 C CNN
-F 1 "GND" V 1755 6122 50  0000 R CNN
-F 2 "" H 1750 6250 50  0001 C CNN
-F 3 "" H 1750 6250 50  0001 C CNN
-	1    1750 6250
+P 1800 7050
+F 0 "#PWR08" H 1800 6800 50  0001 C CNN
+F 1 "GND" V 1805 6922 50  0000 R CNN
+F 2 "" H 1800 7050 50  0001 C CNN
+F 3 "" H 1800 7050 50  0001 C CNN
+	1    1800 7050
 	0    1    1    0   
 $EndComp
 Wire Wire Line
-	1750 6250 2100 6250
+	1800 7050 2150 7050
 Text Label 9750 3500 0    50   ~ 0
 LED_P
 Text Label 9750 3850 0    50   ~ 0
@@ -934,8 +941,8 @@ LED_N
 Text Label 7650 3500 0    50   ~ 0
 SW
 Wire Wire Line
-	2850 4300 3300 4300
-Text Label 3300 4300 2    50   ~ 0
+	2850 4100 3300 4100
+Text Label 3300 4100 2    50   ~ 0
 LED2
 $Comp
 L Device:R R10
@@ -1003,6 +1010,8 @@ F 0 "U5" H 7050 5850 50  0000 C CNN
 F 1 "LMV321" H 7150 5750 50  0000 C CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 7000 5550 50  0001 L CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lmv324.pdf" H 7000 5550 50  0001 C CNN
+F 4 "TI" H 0   0   50  0001 C CNN "MFR"
+F 5 "LMV321M5X" H 0   0   50  0001 C CNN "MPN"
 	1    7000 5550
 	1    0    0    -1  
 $EndComp
@@ -1233,4 +1242,7 @@ F 3 "" H 3500 6200 50  0001 C CNN
 $EndComp
 Text Notes 1250 4900 0    50   ~ 0
 G = 0.18
+Text Notes 2000 6150 0    50   ~ 0
+Pinning:\n  PA0: PA0\n  PA1: PA1\n  PA2: TIM15_CH1\n  PA3: PA3\n  PA4: ADC_IN4\n  PA7: TIM3_CH2\n  PA13: SWDIO\n  PA14: SWCLK\n  PB1: ADC_IN9
+NoConn ~ 2850 4300
 $EndSCHEMATC
