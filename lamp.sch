@@ -477,8 +477,8 @@ $EndComp
 Text Notes 7950 3850 0    50   ~ 0
 Vref = 0.8V
 Wire Wire Line
-	2850 3700 3300 3700
-Text Label 3300 3700 2    50   ~ 0
+	2850 4200 3300 4200
+Text Label 3300 4200 2    50   ~ 0
 BTN
 $Comp
 L Device:R R13
@@ -523,10 +523,10 @@ $EndComp
 Wire Wire Line
 	3050 2950 3350 2950
 Wire Wire Line
-	2850 3400 3300 3400
+	2850 4000 3300 4000
 Text Label 3050 2950 0    50   ~ 0
 LED1
-Text Label 3300 3400 2    50   ~ 0
+Text Label 3300 4000 2    50   ~ 0
 LED1
 Wire Wire Line
 	2850 3600 3500 3600
@@ -606,8 +606,6 @@ Wire Wire Line
 	6700 5450 6050 5450
 Text Label 6050 5450 0    50   ~ 0
 SETPOINT
-NoConn ~ 2850 4000
-NoConn ~ 2850 4200
 NoConn ~ 1850 4200
 NoConn ~ 1850 4300
 Text Notes 8050 3200 0    50   ~ 0
@@ -1243,6 +1241,8 @@ $EndComp
 Text Notes 1250 4900 0    50   ~ 0
 G = 0.18
 Text Notes 2000 6150 0    50   ~ 0
-Pinning:\n  PA0: PA0\n  PA1: PA1\n  PA2: TIM15_CH1\n  PA3: PA3\n  PA4: ADC_IN4\n  PA7: TIM3_CH2\n  PA13: SWDIO\n  PA14: SWCLK\n  PB1: ADC_IN9
+Pinning:\n  PA1: PA1\n  PA2: TIM15_CH1\n  PA4: ADC_IN4\n  PA6: TIM16_CH1\n  PA7: TIM3_CH2\n  PA9: PA9\n  PA13: SWDIO\n  PA14: SWCLK\n  PB1: ADC_IN9
 NoConn ~ 2850 4300
+NoConn ~ 2850 3400
+NoConn ~ 2850 3700
 $EndSCHEMATC
