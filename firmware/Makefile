@@ -1,8 +1,6 @@
 DEVICE          = stm32f030p6
 OPENCM3_DIR     = libopencm3
 OBJS            += main.o
-FP_FLAGS	      ?= -msoft-float
-ARCH_FLAGS      = -mthumb -mcpu=cortex-m0 $(FP_FLAGS)
 
 ifeq ($(ENABLE_SEMIHOSTING),1)
 LDFLAGS		      += --specs=rdimon.specs

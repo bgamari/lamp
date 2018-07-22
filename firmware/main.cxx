@@ -79,10 +79,9 @@ PWM led1(LED1_TIMER, TIM_OC1, RCC_TIM16);
 PWM led2(LED2_TIMER, TIM_OC1, RCC_TIM17);
 
 /* For semihosting on newlib */
-extern void initialise_monitor_handles(void);
+extern "C" void initialise_monitor_handles(void);
 
-extern "C" {
-
+extern "C"
 int main(void) {
 #if defined(ENABLE_SEMIHOSTING)
 	initialise_monitor_handles();
@@ -115,7 +114,7 @@ int main(void) {
       for (int i=0; i<5000; i++) __asm__("NOP");
       led1.set_duty(j);
       led2.set_duty(j);
-      printf(".\n");
+      putchar('.');
       current_reg.pwm.set_duty(j);
     }
     gpio_toggle(GPIOA, GPIO6);
@@ -130,4 +129,3 @@ int main(void) {
   return 0;
 }
 
-}
