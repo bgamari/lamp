@@ -1,6 +1,6 @@
 DEVICE          = stm32f030p6
 OPENCM3_DIR     = libopencm3
-OBJS            += main.o
+OBJS            += main.o pwm.o
 
 ifeq ($(ENABLE_SEMIHOSTING),1)
 LDFLAGS		      += --specs=rdimon.specs
