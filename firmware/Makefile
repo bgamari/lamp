@@ -12,6 +12,7 @@ CFLAGS          += -Os -ggdb3
 CXXFLAGS        += -fno-exceptions -fno-rtti $(ARCH_FLAGS) $(CFLAGS)
 CPPFLAGS        += -MD
 LDFLAGS         += -static -nostartfiles
+LDFLAGS         += -Wl,-flto=8
 LDLIBS          += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 include $(OPENCM3_DIR)/mk/genlink-config.mk
