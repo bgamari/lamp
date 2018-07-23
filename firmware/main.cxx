@@ -13,7 +13,31 @@
 #define LED1_TIMER TIM16
 #define LED2_TIMER TIM17
 
+//#define CALIBRATE
+#if defined CALIBRATE
 const uint16_t max_setpoint = 1200; //3500;
+#endif
+
+static uint16_t current_to_setpoint(uint32_t milliamps) {
+  return 1665 * milliamps / 1000 - 138;
+}
+
+volatile uint8_t current_mode = 0;
+
+static uint16_t get_mode_setpoint(uint8_t mode) {
+  switch (mode) {
+  case 0:
+    return 0;
+  case 1:
+    return current_to_setpoint(200);
+  case 2:
+    return current_to_setpoint(500);
+  case 3:
+    return current_to_setpoint(800);
+  default:
+    return 0;
+  }
+}
 
 extern PWM led1, led2;
 
@@ -48,25 +72,15 @@ public:
     // Wiggle things about a bit
     if (delta == 0)
       delta = 1;
+    // Give things a bit of a kick if we are way off
+    if (10*isense < setpoint)
+      delta = 300;
     int32_t next = (int32_t) duty - delta;
     if (next < 0)
       next = 0;
     if (next > 0xffff)
       next = 0xffff;
     set_duty(next);
-
-
-    //if (isense > setpoint) {
-    //  uint16_t next = duty - 0x10;
-    //  if (next > duty)
-    //    next = 0;
-    //  set_duty(next);
-    //} else {
-    //  uint16_t next = duty + 0x10;
-    //  if (next < duty)
-    //    next = duty;
-    //  set_duty(next);
-    //}
   }
 
 private:
@@ -134,7 +148,12 @@ PWM led2(LED2_TIMER, TIM_OC1, RCC_TIM17);
 Button btn(10, on_press, read_button_pin);
 
 void on_press(uint64_t press_dur_ms) {
-  current_reg.set_setpoint(current_reg.get_setpoint() + 0x1000);
+  uint8_t new_mode = current_mode+1;
+  uint16_t setpoint = get_mode_setpoint(new_mode);
+  if (setpoint == 0)
+    new_mode = 0;
+  current_reg.set_setpoint(setpoint);
+  current_mode = new_mode;
 }
 
 extern "C" void adc_comp_isr() {
@@ -143,18 +162,24 @@ extern "C" void adc_comp_isr() {
 }
 
 extern "C" void exti4_15_isr(void) {
-  //btn.on_event();
+#if !defined(CALIBRATE)
+  btn.on_event();
+#endif
   exti_reset_request(EXTI9);
 }
 
 extern "C" void sys_tick_handler(void) {
   ticks += 1;
+
+#if defined(CALIBRATE)
   if (ticks % 10 == 0 && read_button_pin()) {
     uint16_t next = current_reg.get_setpoint() + 0x1;
     if (next > max_setpoint)
       next = 0;
     current_reg.set_setpoint(next);
   }
+#endif
+
   adc_start_conversion_regular(ADC);
 }
 
@@ -228,7 +253,6 @@ int main(void) {
     for (int j=0x7fff; j < 0xffff; j += 10) {
       for (int i=0; i<5000; i++) __asm__("NOP");
       //led1.set_duty(j);
-      //current_reg.set_duty(j);
       led2.set_duty(j);
     }
   }
