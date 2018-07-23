@@ -29,7 +29,7 @@ static uint16_t get_mode_setpoint(uint8_t mode) {
   case 0:
     return 0;
   case 1:
-    return current_to_setpoint(200);
+    return current_to_setpoint(300);
   case 2:
     return current_to_setpoint(500);
   case 3:
@@ -47,14 +47,20 @@ volatile uint64_t ticks = 0;
 class CurrentReg {
   PWM pwm;
   uint16_t setpoint, duty;
+  uint16_t idle_count;
+  int32_t integ_err;
 
 public:
-  CurrentReg() : pwm(SETPOINT_TIMER, TIM_OC1, RCC_TIM14), setpoint(0) {
+  CurrentReg()
+    : pwm(SETPOINT_TIMER, TIM_OC1, RCC_TIM14), setpoint(0),
+      idle_count(0), integ_err(0)
+  {
     set_duty(0);
   }
 
   void set_setpoint(uint16_t s) {
     setpoint = s;
+    integ_err = 0;
   }
 
   uint16_t get_setpoint() {
@@ -67,19 +73,18 @@ public:
       return;
     }
 
-    int32_t scale = 3;
-    int32_t delta = (int32_t) isense / scale - (int32_t) setpoint / scale;
+    int32_t error = isense - setpoint;
+    integ_err = (90 * integ_err + error) / 91;
+    int32_t delta = error + integ_err;
     // Wiggle things about a bit
     if (delta == 0)
       delta = 1;
-    // Give things a bit of a kick if we are way off
-    if (10*isense < setpoint)
-      delta = 300;
     int32_t next = (int32_t) duty - delta;
     if (next < 0)
       next = 0;
     if (next > 0xffff)
       next = 0xffff;
+    //if (2*isense < setpoint) next = 800;
     set_duty(next);
   }
 
@@ -97,9 +102,12 @@ private:
     this->duty = duty;
     led1.set_duty(duty);
     if (duty == 0) {
-      set_output_enable(false);
+      idle_count++;
+      if (idle_count > 1000)
+        set_output_enable(false);
       pwm.set_duty(0xffff);
     } else {
+      idle_count = 0;
       pwm.set_duty(0xffff - duty);
       set_output_enable(true);
     }
