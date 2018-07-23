@@ -8,11 +8,11 @@ LDLIBS		      += -lrdimon
 CFLAGS	        += -DENABLE_SEMIHOSTING
 endif
 
-CFLAGS          += -Os -ggdb3
+CFLAGS          += -Os -ggdb3 -Wall -gdwarf-2
 CXXFLAGS        += -fno-exceptions -fno-rtti $(ARCH_FLAGS) $(CFLAGS)
 CPPFLAGS        += -MD
 LDFLAGS         += -static -nostartfiles
-LDFLAGS         += -Wl,-flto=8
+#LDFLAGS         += -Wl,-flto=8
 LDLIBS          += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 include $(OPENCM3_DIR)/mk/genlink-config.mk

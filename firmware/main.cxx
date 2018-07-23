@@ -2,7 +2,9 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/exti.h>
+#include <libopencm3/stm32/adc.h>
 #include <libopencm3/cm3/systick.h>
+#include <libopencm3/cm3/nvic.h>
 #include <stdio.h>
 
 #include "pwm.hpp"
@@ -11,19 +13,40 @@
 #define LED1_TIMER TIM16
 #define LED2_TIMER TIM17
 
+extern PWM led1, led2;
+
 // in milliseconds
 volatile uint64_t ticks = 0;
 
 class CurrentReg {
   PWM pwm;
+  uint16_t setpoint, duty;
 
 public:
-  CurrentReg() : pwm(SETPOINT_TIMER, TIM_OC1, RCC_TIM14) {
-    pwm.set_duty(0);
+  CurrentReg() : pwm(SETPOINT_TIMER, TIM_OC1, RCC_TIM14), setpoint(0) {
+    set_duty(0);
   }
 
-  void step() {
-    //pwm.set_duty();
+  void set_setpoint(uint16_t s) {
+    setpoint = s;
+  }
+
+  uint16_t get_setpoint() {
+    return setpoint;
+  }
+
+  void step(uint16_t isense) {
+    return;
+    if (setpoint == 0) {
+      set_duty(0);
+      return;
+    }
+
+    if (isense > setpoint) {
+      set_duty(duty-10);
+    } else {
+      set_duty(duty+10);
+    }
   }
 
 private:
@@ -35,29 +58,41 @@ private:
     }
   }
 
+  public:
   void set_duty(uint16_t duty) {
+    this->duty = duty;
+    led1.set_duty(duty);
     if (duty == 0) {
       set_output_enable(false);
       pwm.set_duty(0);
     } else {
-      pwm.set_duty(0xffff - duty);
+      pwm.set_duty(duty);
       set_output_enable(true);
     }
   }
 };
 
+typedef void (*on_press_cb)(uint64_t);
+typedef bool (*read_pin_fn)();
+
+bool read_button_pin() {
+  return !gpio_get(GPIOA, GPIO9);
+}
+
 class Button {
   const uint32_t debounce_ms;
   uint64_t last_press;
   bool state;
+  const on_press_cb on_press;
+  const read_pin_fn read_pin;
 
 public:
-  Button(uint32_t debounce_ms)
-    : debounce_ms(debounce_ms), last_press(0), state(false)
+  Button(uint32_t debounce_ms, on_press_cb on_press, read_pin_fn read_pin)
+    : debounce_ms(debounce_ms), last_press(0), state(false), on_press(on_press), read_pin(read_pin)
   {}
 
   void on_event() {
-    bool cur_state = get_state();
+    bool cur_state = read_pin();
     if (cur_state && !state) {
       last_press = ticks;
       state = true;
@@ -67,29 +102,25 @@ public:
         on_press(ticks - last_press);
     }
   }
-
-protected:
-  virtual bool get_state();
-  virtual void on_press(uint64_t press_dur_ms);
 };
 
-class TheButton : public Button {
-public:
-  TheButton() : Button(20) {}
+volatile uint16_t last_current = 0;
 
-private:
-  bool get_state() {
-    return !gpio_get(GPIOA, GPIO9);
-  }
-  void on_press(uint64_t press_dur_ms) {
-    puts("hello\n");
-  }
-};
+void on_press(uint64_t press_dur_ms);
 
 CurrentReg current_reg;
 PWM led1(LED1_TIMER, TIM_OC1, RCC_TIM16);
 PWM led2(LED2_TIMER, TIM_OC1, RCC_TIM17);
-TheButton btn;
+Button btn(10, on_press, read_button_pin);
+
+void on_press(uint64_t press_dur_ms) {
+  current_reg.set_setpoint(current_reg.get_setpoint() + 0x1000);
+}
+
+extern "C" void adc_comp_isr() {
+  last_current = adc_read_regular(ADC);
+  current_reg.step(last_current);
+}
 
 extern "C" void exti4_15_isr(void) {
   btn.on_event();
@@ -98,26 +129,12 @@ extern "C" void exti4_15_isr(void) {
 
 extern "C" void sys_tick_handler(void) {
   ticks += 1;
+  if (ticks % 100 == 0)
+    adc_start_conversion_regular(ADC);
 }
 
-/* For semihosting on newlib */
-extern "C" void initialise_monitor_handles(void);
-
-extern "C"
-int main(void) {
-#if defined(ENABLE_SEMIHOSTING)
-	initialise_monitor_handles();
-#endif
-  rcc_clock_setup_in_hsi_out_48mhz();
-	rcc_periph_clock_enable(RCC_GPIOA);
-	rcc_periph_clock_enable(RCC_ADC);
-
-  if (!systick_set_frequency(1000, rcc_ahb_frequency)) {
-    return 1;
-  }
-  systick_counter_enable();
-  systick_interrupt_enable();
-
+static void init_pins()
+{
   // PA1: Output enable
   gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO1);
 
@@ -136,24 +153,60 @@ int main(void) {
   gpio_set_af(GPIOA, GPIO_AF5, GPIO7);
   gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO7);
 
-  //gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO6);
-  while (true) {
-    for (int j=0; j < 0xffff; j += 10) {
-      for (int i=0; i<5000; i++) __asm__("NOP");
-      led1.set_duty(j);
-      led2.set_duty(j);
-    }
-    gpio_toggle(GPIOA, GPIO6);
-  }
-
   // PA9: BTN
   gpio_mode_setup(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, GPIO9);
   exti_select_source(EXTI9, GPIOA);
   exti_set_trigger(EXTI9, EXTI_TRIGGER_BOTH);
   exti_enable_request(EXTI9);
+  nvic_enable_irq(NVIC_EXTI4_15_IRQ);
 
   // PB1: VBAT
   gpio_mode_setup(GPIOB, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO1);
+}
+
+/* For semihosting on newlib */
+extern "C" void initialise_monitor_handles(void);
+
+extern "C"
+int main(void) {
+#if defined(ENABLE_SEMIHOSTING)
+	initialise_monitor_handles();
+#endif
+  rcc_clock_setup_in_hsi_out_48mhz();
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_ADC);
+
+  // Initialize ticker
+  if (!systick_set_frequency(1000, rcc_ahb_frequency)) {
+    return 1;
+  }
+  systick_counter_enable();
+  systick_interrupt_enable();
+
+  init_pins();
+
+  // Initialize ADC
+  {
+    adc_power_off(ADC);
+    adc_set_clk_source(ADC1, ADC_CLKSOURCE_ADC);
+    adc_calibrate(ADC);
+    uint8_t channels = { 5 };
+    adc_set_regular_sequence(ADC, 1, &channels);
+    adc_enable_eoc_interrupt(ADC);
+    nvic_enable_irq(NVIC_ADC_COMP_IRQ);
+    adc_set_sample_time_on_all_channels(ADC, ADC_SMPTIME_239DOT5);
+    adc_power_on(ADC);
+    adc_start_conversion_regular(ADC);
+  }
+
+  while (true) {
+    for (int j=0x7fff; j < 0xffff; j += 10) {
+      for (int i=0; i<5000; i++) __asm__("NOP");
+      //led1.set_duty(j);
+      //current_reg.set_duty(j);
+      led2.set_duty(j);
+    }
+  }
 
   return 0;
 }

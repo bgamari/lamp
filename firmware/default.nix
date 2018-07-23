@@ -1,6 +1,5 @@
-with (import <nixpkgs> {});
-
-stdenv.mkDerivation {
+let nixpkgs = import ~/.nix-overlay/nixpkgs {};
+in with nixpkgs; stdenv.mkDerivation {
   name = "firmware";
-  nativeBuildInputs = [ gnumake gcc-arm-embedded openocd ];
+  nativeBuildInputs = [ gcc-arm-embedded gnumake openocd ];
 }
