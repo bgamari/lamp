@@ -9,6 +9,7 @@ private:
   uint32_t timer_peripheral;
   enum tim_oc_id oc_id;
   uint16_t duty;
+  void start();
 
 public:
   PWM(uint32_t timer_peripheral,

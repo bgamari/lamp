@@ -13,6 +13,8 @@
 #define LED1_TIMER TIM16
 #define LED2_TIMER TIM17
 
+const uint16_t max_setpoint = 1200; //3500;
+
 extern PWM led1, led2;
 
 // in milliseconds
@@ -36,17 +38,35 @@ public:
   }
 
   void step(uint16_t isense) {
-    return;
     if (setpoint == 0) {
       set_duty(0);
       return;
     }
 
-    if (isense > setpoint) {
-      set_duty(duty-10);
-    } else {
-      set_duty(duty+10);
-    }
+    int32_t scale = 3;
+    int32_t delta = (int32_t) isense / scale - (int32_t) setpoint / scale;
+    // Wiggle things about a bit
+    if (delta == 0)
+      delta = 1;
+    int32_t next = (int32_t) duty - delta;
+    if (next < 0)
+      next = 0;
+    if (next > 0xffff)
+      next = 0xffff;
+    set_duty(next);
+
+
+    //if (isense > setpoint) {
+    //  uint16_t next = duty - 0x10;
+    //  if (next > duty)
+    //    next = 0;
+    //  set_duty(next);
+    //} else {
+    //  uint16_t next = duty + 0x10;
+    //  if (next < duty)
+    //    next = duty;
+    //  set_duty(next);
+    //}
   }
 
 private:
@@ -64,9 +84,9 @@ private:
     led1.set_duty(duty);
     if (duty == 0) {
       set_output_enable(false);
-      pwm.set_duty(0);
+      pwm.set_duty(0xffff);
     } else {
-      pwm.set_duty(duty);
+      pwm.set_duty(0xffff - duty);
       set_output_enable(true);
     }
   }
@@ -123,14 +143,19 @@ extern "C" void adc_comp_isr() {
 }
 
 extern "C" void exti4_15_isr(void) {
-  btn.on_event();
+  //btn.on_event();
   exti_reset_request(EXTI9);
 }
 
 extern "C" void sys_tick_handler(void) {
   ticks += 1;
-  if (ticks % 100 == 0)
-    adc_start_conversion_regular(ADC);
+  if (ticks % 10 == 0 && read_button_pin()) {
+    uint16_t next = current_reg.get_setpoint() + 0x1;
+    if (next > max_setpoint)
+      next = 0;
+    current_reg.set_setpoint(next);
+  }
+  adc_start_conversion_regular(ADC);
 }
 
 static void init_pins()
