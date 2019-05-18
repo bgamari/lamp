@@ -1,0 +1,23 @@
+[package]
+name = "rust"
+version = "0.1.0"
+authors = ["Ben Gamari <ben@smart-cactus.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cortex-m = "^0.6"
+cortex-m-rt = "^0.6"
+panic-halt = "^0.2"
+
+[dependencies.stm32f0xx-hal]
+version = "0.14.0"
+features = [ "stm32f030x6", "rt" ]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
