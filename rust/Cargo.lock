@@ -78,6 +78,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "lamp"
+version = "0.1.0"
+dependencies = [
+ "cortex-m 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cortex-m-rt 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedded-hal 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "panic-halt 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "stm32f0xx-hal 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "nb"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -128,16 +139,6 @@ dependencies = [
 name = "rand_core"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "rust"
-version = "0.1.0"
-dependencies = [
- "cortex-m 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cortex-m-rt 0.6.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "panic-halt 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "stm32f0xx-hal 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "rustc_version"

@@ -27,6 +27,5 @@ in stdenv.mkDerivation {
 #
 # rustup target add $TARGET
 # rustup update
-# cargo install xargo
-# xargo build
+# cargo rustc --release --target thumbv6m-none-eabi -- -C link-arg=-Tlink.x
 #
