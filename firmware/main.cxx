@@ -59,8 +59,12 @@ public:
   }
 
   void set_setpoint(uint16_t s) {
+    // Give things a bump to compensate for current sense noise
+    if (s < setpoint)
+      integ_err = -500;
+    else
+      integ_err = 500;
     setpoint = s;
-    integ_err = 0;
   }
 
   uint16_t get_setpoint() {
@@ -74,16 +78,12 @@ public:
     }
 
     int32_t error = isense - setpoint;
-    integ_err = (90 * integ_err + error) / 91;
-    int32_t delta = error + integ_err;
-    // Wiggle things about a bit
-    if (delta == 0)
-      delta = 1;
+    integ_err = (20 * integ_err + error) / 21;
+    int32_t delta = 4*error + 5*integ_err;
+    delta /= 100;
     int32_t next = (int32_t) duty - delta;
-    if (next < 0)
-      next = 0;
-    if (next > 0xffff)
-      next = 0xffff;
+    //if (next < 0) next = 0;
+    //if (next > 0xffff) next = 0xffff;
     //if (2*isense < setpoint) next = 800;
     set_duty(next);
   }
@@ -258,11 +258,7 @@ int main(void) {
   }
 
   while (true) {
-    for (int j=0x7fff; j < 0xffff; j += 10) {
-      for (int i=0; i<5000; i++) __asm__("NOP");
-      //led1.set_duty(j);
-      led2.set_duty(j);
-    }
+    __asm__("wfi");
   }
 
   return 0;
