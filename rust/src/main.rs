@@ -13,6 +13,8 @@ use stm32f0xx_hal::prelude::*;
 use embedded_hal::digital::v1::OutputPin;
 use cortex_m_rt::entry;
 
+mod pi_loop;
+
 struct Regulator<'a> {
     // Pins
     out_en: &'a mut dyn OutputPin,
@@ -20,14 +22,16 @@ struct Regulator<'a> {
     led2: &'a mut dyn OutputPin,
 
     // State
-    pid_loop: pi_loop::PILoop,
+    pi_loop: pi_loop::PILoop,
 }
 
 impl<'a> Regulator<'a> {
-    fn run(self) {
+    fn run(mut self) {
+        self.pi_loop.set_gains(100, 100);
         loop {
             self.out_en.set_high();
             self.out_en.set_low();
+            self.pi_loop.add_sample(40);
         }
     }
 }
@@ -51,7 +55,8 @@ fn main() -> ! {
             let reg = Regulator {
                 out_en: &mut out_en,
                 led1: &mut led1,
-                led2: &mut led2
+                led2: &mut led2,
+                pi_loop: pi_loop::PILoop::new(),
             };
             reg.run();
         })
