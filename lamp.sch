@@ -1,13 +1,14 @@
 EESchema Schematic File Version 4
+LIBS:lamp-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
-Title ""
-Date ""
-Rev ""
-Comp ""
+Title "LED driver"
+Date "2019-06-23"
+Rev "1"
+Comp "Ben Gamari"
 Comment1 ""
 Comment2 ""
 Comment3 ""
@@ -1041,7 +1042,7 @@ L Device:C C6
 U 1 1 5B40E092
 P 4600 7000
 F 0 "C6" H 4715 7046 50  0000 L CNN
-F 1 "100n" H 4715 6955 50  0000 L CNN
+F 1 "4.7n" H 4715 6955 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0603_1608Metric" H 4638 6850 50  0001 C CNN
 F 3 "~" H 4600 7000 50  0001 C CNN
 	1    4600 7000
@@ -1060,7 +1061,7 @@ Connection ~ 5050 6850
 Wire Wire Line
 	5050 6850 5050 6700
 Text Notes 5200 6150 0    50   ~ 0
-G = 101\nf_co = 100 Hz
+G = 101\nf_co = 300 Hz
 $Comp
 L power:+3.3V #PWR027
 U 1 1 5B41C393
