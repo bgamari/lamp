@@ -9,8 +9,12 @@ edition = "2018"
 [dependencies]
 cortex-m = "^0.6"
 cortex-m-rt = "^0.6"
+cortex-m-semihosting = "^0.3"
 panic-halt = "^0.2"
-embedded-hal = "^0.2"
+
+[dependencies.embedded-hal]
+version = "^0.2"
+features = [ "unproven" ]
 
 [dependencies.stm32f0xx-hal]
 version = "0.14.0"
