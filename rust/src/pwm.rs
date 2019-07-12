@@ -55,7 +55,7 @@ impl Pwm for TimPwm<TIM14> {
         unsafe {
             let ptr = hal::stm32::TIM14::ptr();
             let period = (*ptr).psc.read().psc().bits();
-            Hertz(period.into()) // TODO
+            Hertz(period.into()) // TODO: FIXME
         }
     }
 
@@ -69,7 +69,10 @@ impl Pwm for TimPwm<TIM14> {
     }
 
     fn get_max_duty(&self) -> u16 {
-        0xffff
+        unsafe {
+            let ptr = hal::stm32::TIM14::ptr();
+            (*ptr).arr.read().arr().bits()
+        }
     }
 
     fn set_duty(&mut self, channel: Self::Channel, duty: u16) {
