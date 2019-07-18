@@ -207,7 +207,7 @@ L Regulator_Linear:LP2985-3.3 U3
 U 1 1 5B36DA81
 P 4850 1400
 F 0 "U3" H 4700 1625 50  0000 C CNN
-F 1 "MIC5205-3.3" H 4850 1625 50  0000 L CNN
+F 1 "LP2985-33" H 4850 1625 50  0000 L CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 4850 1725 50  0001 C CNN
 F 3 "" H 4850 1400 50  0001 C CNN
 F 4 "TI" H 0   0   50  0001 C CNN "MFR"
@@ -406,7 +406,7 @@ L Device:C C3
 U 1 1 5B37F421
 P 3900 4000
 F 0 "C3" H 4015 4046 50  0000 L CNN
-F 1 "1u" H 4015 3955 50  0000 L CNN
+F 1 "100n" H 4015 3955 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0603_1608Metric" H 3938 3850 50  0001 C CNN
 F 3 "~" H 3900 4000 50  0001 C CNN
 	1    3900 4000
@@ -450,7 +450,7 @@ F 3 "" H 3900 4150 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Text Notes 3900 3650 0    50   ~ 0
-f_cutoff = 10 kHz
+f_cutoff = 150 Hz\n
 $Comp
 L Connector:Test_Point TP1
 U 1 1 5B385402
@@ -623,15 +623,15 @@ F 3 "~" H 2350 6850 50  0001 C CNN
 	0    1    1    0   
 $EndComp
 $Comp
-L Amplifier_Operational:LMV321 U2
+L Amplifier_Operational:OPA376xxDBV U2
 U 1 1 5B3A6F0E
 P 4650 5850
 F 0 "U2" H 4700 6150 50  0000 C CNN
-F 1 "LMV321" H 4800 6050 50  0000 C CNN
+F 1 "TLV333" H 4800 6050 50  0000 C CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 4650 5850 50  0001 L CNN
-F 3 "http://www.ti.com/lit/ds/symlink/lmv324.pdf" H 4650 5850 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/tlv333.pdf" H 4650 5850 50  0001 C CNN
 F 4 "TI" H 0   0   50  0001 C CNN "MFR"
-F 5 "LMV321M5" H 0   0   50  0001 C CNN "MPN"
+F 5 "TLV333" H 0   0   50  0001 C CNN "MPN"
 	1    4650 5850
 	-1   0    0    -1  
 $EndComp
@@ -662,7 +662,7 @@ L Device:R R5
 U 1 1 5B3A8579
 P 4600 6700
 F 0 "R5" V 4393 6700 50  0000 C CNN
-F 1 "120k" V 4484 6700 50  0000 C CNN
+F 1 "100k" V 4484 6700 50  0000 C CNN
 F 2 "Resistor_SMD:R_0603_1608Metric" V 4530 6700 50  0001 C CNN
 F 3 "~" H 4600 6700 50  0001 C CNN
 	1    4600 6700
@@ -728,7 +728,7 @@ L Device:C C5
 U 1 1 5B3B4DAC
 P 6000 1600
 F 0 "C5" H 6115 1646 50  0000 L CNN
-F 1 "2.2u" H 6115 1555 50  0000 L CNN
+F 1 "4.7u" H 6115 1555 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0603_1608Metric" H 6038 1450 50  0001 C CNN
 F 3 "~" H 6000 1600 50  0001 C CNN
 	1    6000 1600
@@ -889,15 +889,15 @@ Connection ~ 8500 3900
 Wire Wire Line
 	8500 3900 8500 3950
 $Comp
-L Amplifier_Operational:LMV321 U5
+L Amplifier_Operational:OPA376xxDBV U5
 U 1 1 5B3DFFA7
 P 7000 5550
 F 0 "U5" H 7050 5850 50  0000 C CNN
-F 1 "LMV321" H 7150 5750 50  0000 C CNN
+F 1 "TLV333" H 7150 5750 50  0000 C CNN
 F 2 "Package_TO_SOT_SMD:SOT-23-5" H 7000 5550 50  0001 L CNN
-F 3 "http://www.ti.com/lit/ds/symlink/lmv324.pdf" H 7000 5550 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/tlv333.pdf" H 7000 5550 50  0001 C CNN
 F 4 "TI" H 0   0   50  0001 C CNN "MFR"
-F 5 "LMV321M5" H 0   0   50  0001 C CNN "MPN"
+F 5 "TLV333" H 0   0   50  0001 C CNN "MPN"
 	1    7000 5550
 	1    0    0    -1  
 $EndComp
@@ -1259,4 +1259,36 @@ VIN < 10V
 Wire Wire Line
 	4450 1400 4450 1300
 Connection ~ 4450 1300
+$Comp
+L Connector:Test_Point TP5
+U 1 1 5D298FBA
+P 2150 7400
+F 0 "TP5" V 2104 7588 50  0000 L CNN
+F 1 "Test_Point" V 2195 7588 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2350 7400 50  0001 C CNN
+F 3 "~" H 2350 7400 50  0001 C CNN
+	1    2150 7400
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1700 7400 2150 7400
+Text Label 1700 7400 0    50   ~ 0
+DEBUG_TX
+Wire Wire Line
+	1700 7600 2150 7600
+Text Label 1700 7600 0    50   ~ 0
+DEBUG_RX
+$Comp
+L Connector:Test_Point TP6
+U 1 1 5D298FC4
+P 2150 7600
+F 0 "TP6" V 2104 7788 50  0000 L CNN
+F 1 "Test_Point" V 2195 7788 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 2350 7600 50  0001 C CNN
+F 3 "~" H 2350 7600 50  0001 C CNN
+	1    2150 7600
+	0    1    1    0   
+$EndComp
+Text Notes 5200 5300 0    50   ~ 0
+TLV333: Rail-to-rail\n  GBW=350kHz\n  Iq = 17uA
 $EndSCHEMATC
