@@ -73,6 +73,7 @@ struct Regulator<'a> {
 
 lazy_static! {
     static ref MUTEX_EXTI:  Mutex<RefCell<Option<hal::stm32::EXTI>>>  = Mutex::new(RefCell::new(None));
+    static ref MUTEX_SCB:  Mutex<RefCell<Option<cortex_m::peripheral::SCB>>>  = Mutex::new(RefCell::new(None));
 }
 
 fn oversample_adc<Pin>(adc: &mut hal::adc::Adc, channel: &mut Pin, samples: u8) -> u16
@@ -92,6 +93,15 @@ fn dump_interrupts() {
                   (*hal::stm32::NVIC::ptr()).ispr[0].read(),
                   (*hal::stm32::NVIC::ptr()).ispr[0].read()).unwrap();
     }
+}
+
+fn deepsleep() {
+    cortex_m::interrupt::free(|cs| {
+        let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
+        scb.as_mut().unwrap().set_sleepdeep();
+        cortex_m::asm::wfi();
+        scb.as_mut().unwrap().clear_sleepdeep();
+    });
 }
 
 impl<'a> Regulator<'a> {
@@ -152,7 +162,7 @@ impl<'a> Regulator<'a> {
         self.initialize();
         loop {
             while self.active_mode().is_off() {
-                cortex_m::asm::wfi();
+                deepsleep();
                 self.check_button();
             }
 
@@ -213,6 +223,7 @@ fn main() -> ! {
                 p.EXTI.ftsr.write(|w| w.tr9().set_bit());
                 cp.NVIC.enable(hal::stm32::Interrupt::EXTI4_15);
                 MUTEX_EXTI.borrow(cs).replace(Some(p.EXTI));
+                MUTEX_SCB.borrow(cs).replace(Some(cp.SCB));
 
                 let delay = hal::delay::Delay::new(cp.SYST, &rcc);
                 let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
