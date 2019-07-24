@@ -34,15 +34,27 @@ use debounce::Debounce;
 const VBAT_MICROVOLT_PER_CODEPOINT: u32 = 4587;
 
 #[derive(Clone, Copy, Debug)]
-struct Mode { setpoint: u16 }
+enum Mode {
+    Off,
+    ConstDuty(u16),
+    ConstCurrent(u16)
+}
+
 
 impl Mode {
-    pub fn new(setpoint: u16) -> Self {
-        Mode {setpoint: setpoint}
+    pub fn from_duty(duty: u16) -> Self {
+        Mode::ConstDuty(duty)
+    }
+
+    pub fn from_current(current: u16) -> Self {
+        Mode::ConstCurrent(current)
     }
 
     pub fn is_off(self) -> bool {
-        self.setpoint == 0
+        match self {
+            Mode::Off => true,
+            _   => false,
+        }
     }
 }
 
@@ -55,6 +67,7 @@ struct Regulator<'a> {
 
     // Environment
     modes: &'a [Mode],
+    cs: &'a cortex_m::interrupt::CriticalSection,
 
     // State
     mode_idx: u8,
@@ -95,13 +108,17 @@ fn dump_interrupts() {
     }
 }
 
-fn deepsleep() {
-    cortex_m::interrupt::free(|cs| {
-        let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
-        scb.as_mut().unwrap().set_sleepdeep();
-        cortex_m::asm::wfi();
-        scb.as_mut().unwrap().clear_sleepdeep();
-    });
+#[cfg(feature="nosleep")]
+fn deepsleep(cs: &cortex_m::interrupt::CriticalSection) {
+    cortex_m::asm::wfi();
+}
+
+#[cfg(not(feature="nosleep"))]
+fn deepsleep(cs: &cortex_m::interrupt::CriticalSection) {
+    let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
+    scb.as_mut().unwrap().set_sleepdeep();
+    cortex_m::asm::wfi();
+    scb.as_mut().unwrap().clear_sleepdeep();
 }
 
 impl<'a> Regulator<'a> {
@@ -119,7 +136,7 @@ impl<'a> Regulator<'a> {
         self.mode_idx = (self.mode_idx + 1) % self.modes.len() as u8;
         let mode = self.active_mode();
         self.set_mode(mode);
-        hprintln!("mode = {:?}", mode).unwrap();
+        //hprintln!("mode = {:?}", mode).unwrap();
         self.blink_ms(300);
     }
 
@@ -138,15 +155,23 @@ impl<'a> Regulator<'a> {
         //dump_interrupts();
     }
 
+    fn set_duty(&mut self, duty: u16) {
+        self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - duty);
+    }
+
     fn set_mode(&mut self, mode: Mode) {
         //self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - self.active_mode().setpoint);
-        self.pi_loop.set_setpoint(self.active_mode().setpoint);
         if mode.is_off() {
             self.out_en.set_low();
             self.setpoint_pwm.disable(pwm::TimerChannel::Ch1);
         } else {
             self.out_en.set_high();
             self.setpoint_pwm.enable(pwm::TimerChannel::Ch1);
+        }
+        match mode {
+            Mode::ConstDuty(duty) => self.set_duty(duty),
+            Mode::ConstCurrent(setpoint) => self.pi_loop.set_setpoint(setpoint),
+            _ => ()
         }
     }
 
@@ -162,7 +187,7 @@ impl<'a> Regulator<'a> {
         self.initialize();
         loop {
             while self.active_mode().is_off() {
-                deepsleep();
+                deepsleep(self.cs);
                 self.check_button();
             }
 
@@ -179,24 +204,31 @@ impl<'a> Regulator<'a> {
     }
 
     fn iterate(&mut self) {
+        use core::fmt::Write;
         let isense: u16 = oversample_adc::<hal::gpio::gpioa::PA5<hal::gpio::Analog>>(&mut self.adc, &mut self.isense_pin, 2);
         //let isense: u16 = self.adc.read(&mut self.isense_pin).unwrap();
-        let response: i32 = self.pi_loop.add_sample(isense);
-        let res: i32 = i32::from(self.output).saturating_sub(response);
-        if res > 0xffff {
-            self.output = 0xffff;
-        } else if res < 0 {
-            self.output = 0;
-        } else {
-            self.output = res as u16;
-        }
+        match self.active_mode() {
+            Mode::ConstCurrent(setpoint) => {
+                let response: i32 = self.pi_loop.add_sample(isense);
+                let res: i32 = i32::from(self.output).saturating_sub(response);
+                if res > 0xffff {
+                    self.output = 0xffff;
+                } else if res < 0 {
+                    self.output = 0;
+                } else {
+                    self.output = res as u16;
+                }
+                self.set_duty(self.output);
+                write!(self.debug_uart, "resp {}\r\n", response).unwrap();
+            },
+            _ => (),
+        };
 
-        self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - self.output);
         if true {
-            use core::fmt::Write;
-            let bat_v = self.read_batv();
-            write!(self.debug_uart, "hello vbat {} resp {} isense {} output {}\r\n", bat_v / 1000, response, isense, self.output).unwrap();
-            //hprintln!("hello vbat={} i={} xs={:?} resp={} isense={} output={}", bat_v, i, xs, response, isense, self.output);
+            //let bat_v = self.read_batv();
+            let bat_v: u16 = self.adc.read(&mut self.vbat_pin).unwrap();
+            write!(self.debug_uart, "status vbat {} isense {} output {}\r\n", bat_v / 1000, isense, self.output).unwrap();
+            //hprintln!("status vbat={} resp={} isense={} output={}", bat_v, response, isense, self.output).unwrap();
         }
     }
 }
@@ -232,13 +264,17 @@ fn main() -> ! {
                 led1.set_high();
                 led2.set_low();
 
+                //let modes = [Mode::Off, Mode::from_duty(100), Mode::from_duty(200)];
+                let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
+
                 let mut reg = Regulator {
+                    cs: &cs,
                     out_en: &mut out_en,
                     led1: &mut led1,
                     led2: &mut led2,
                     button: Debounce::new(debounce::InvertedInputPin::new(button), hal::timers::Timer::tim1(p.TIM1, 10.khz(), &mut rcc), 1.khz()),
 
-                    modes: &[Mode::new(0), Mode::new(1000), Mode::new(2000)],
+                    modes: &modes,
                     mode_idx: 0,
 
                     pi_loop: pi_loop::PILoop::new(),
