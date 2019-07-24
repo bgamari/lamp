@@ -23,6 +23,7 @@ use cortex_m_rt::entry;
 use cortex_m::interrupt::Mutex;
 use cortex_m_semihosting::hprintln;
 
+use core::fmt::Write;
 use core::cell::RefCell;
 
 mod pi_loop;
@@ -157,6 +158,7 @@ impl<'a> Regulator<'a> {
 
     fn set_duty(&mut self, duty: u16) {
         self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - duty);
+        write!(self.debug_uart, "duty {}\r\n", duty).unwrap();
     }
 
     fn set_mode(&mut self, mode: Mode) {
@@ -204,11 +206,10 @@ impl<'a> Regulator<'a> {
     }
 
     fn iterate(&mut self) {
-        use core::fmt::Write;
         let isense: u16 = oversample_adc::<hal::gpio::gpioa::PA5<hal::gpio::Analog>>(&mut self.adc, &mut self.isense_pin, 2);
         //let isense: u16 = self.adc.read(&mut self.isense_pin).unwrap();
         match self.active_mode() {
-            Mode::ConstCurrent(setpoint) => {
+            Mode::ConstCurrent(_setpoint) => {
                 let response: i32 = self.pi_loop.add_sample(isense);
                 let res: i32 = i32::from(self.output).saturating_sub(response);
                 if res > 0xffff {
@@ -264,8 +265,8 @@ fn main() -> ! {
                 led1.set_high();
                 led2.set_low();
 
-                //let modes = [Mode::Off, Mode::from_duty(100), Mode::from_duty(200)];
-                let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
+                let modes = [Mode::Off, Mode::from_duty(0xfe00), Mode::from_duty(0xffff)];
+                //let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
 
                 let mut reg = Regulator {
                     cs: &cs,
