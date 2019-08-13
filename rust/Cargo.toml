@@ -38,6 +38,7 @@ bench = false
 panic = "abort"
 
 [profile.release]
+features = [ "debug" ]
 panic = "abort"
 codegen-units = 1
 debug = true

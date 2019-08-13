@@ -59,7 +59,7 @@ impl Mode {
     }
 }
 
-struct Regulator<'a> {
+struct Regulator<'a, DebugOutput> {
     // Pins
     out_en: &'a mut dyn OutputPin,
     led1: &'a mut dyn OutputPin,
@@ -78,10 +78,7 @@ struct Regulator<'a> {
     vbat_pin: hal::gpio::gpiob::PB1<hal::gpio::Analog>,
     isense_pin: hal::gpio::gpioa::PA5<hal::gpio::Analog>,
     adc: hal::adc::Adc,
-    debug_uart: hal::serial::Serial<
-        hal::stm32::USART1,
-        hal::gpio::gpioa::PA2<hal::gpio::Alternate<hal::gpio::AF1>>,
-        hal::gpio::gpioa::PA3<hal::gpio::Alternate<hal::gpio::AF1>>>,
+    debug_uart: DebugOutput,
     output: u16,
 }
 
@@ -122,7 +119,7 @@ fn deepsleep(cs: &cortex_m::interrupt::CriticalSection) {
     scb.as_mut().unwrap().clear_sleepdeep();
 }
 
-impl<'a> Regulator<'a> {
+impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
     fn blink_ms(&mut self, time: u16) {
         self.led1.set_high();
         self.delay.delay_ms(time);
@@ -234,6 +231,14 @@ impl<'a> Regulator<'a> {
     }
 }
 
+struct NoWrite;
+
+impl core::fmt::Write for NoWrite {
+    fn write_str(&mut self, _: &str) -> core::fmt::Result {
+        Ok(())
+    }
+}
+
 #[entry]
 fn main() -> ! {
     if let Some(mut cp) = cortex_m::Peripherals::take() {
@@ -259,11 +264,26 @@ fn main() -> ! {
                 MUTEX_SCB.borrow(cs).replace(Some(cp.SCB));
 
                 let delay = hal::delay::Delay::new(cp.SYST, &rcc);
-                let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
-                let debug_uart_rx = gpioa.pa3.into_alternate_af1(cs);
-                let debug_uart = hal::serial::Serial::usart1(p.USART1, (debug_uart_tx, debug_uart_rx), 115_200.bps(), &mut rcc);
+
                 led1.set_high();
                 led2.set_low();
+
+                #[cfg(feature="debug")]
+                let get_debug_output = || {
+                    let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
+                    let debug_uart_rx = gpioa.pa3.into_alternate_af1(cs);
+                    hal::serial::Serial::usart1(p.USART1,
+                                                (debug_uart_tx, debug_uart_rx),
+                                                115_200.bps(),
+                                                &mut rcc)
+                };
+
+                #[cfg(not(feature="debug"))]
+                let get_debug_output = || {
+                    NoWrite
+                };
+
+                let debug_output = get_debug_output();
 
                 let modes = [Mode::Off, Mode::from_duty(0xfe00), Mode::from_duty(0xffff)];
                 //let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
@@ -284,7 +304,7 @@ fn main() -> ! {
                     vbat_pin: vbat_pin,
                     isense_pin: isense_pin,
                     adc: hal::adc::Adc::new(p.ADC, &mut rcc),
-                    debug_uart: debug_uart,
+                    debug_uart: debug_output,
                     output: 0,
                 };
                 reg.run();
