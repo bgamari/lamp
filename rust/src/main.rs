@@ -251,7 +251,11 @@ impl core::fmt::Write for NoWrite {
 fn main() -> ! {
     if let Some(mut cp) = cortex_m::Peripherals::take() {
         if let Some(mut p) = hal::stm32::Peripherals::take() {
-            let modes = [Mode::Off, Mode::from_duty(0xfd00), Mode::from_duty(0xffff)];
+            let modes = [Mode::Off,
+                Mode::from_duty(65024),  // ~340 mW
+                Mode::from_duty(65040),  // ~800 mW
+                Mode::from_duty(65055),  // ~1000 mW
+                Mode::from_duty(65100)]; // ~1800 mW
             //let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
 
             let mut reg = cortex_m::interrupt::free(|cs| {
