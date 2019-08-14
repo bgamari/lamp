@@ -1283,4 +1283,8 @@ F 5 "TLV2333IDGK" H 0   0   50  0001 C CNN "MPN"
 	3    6800 5550
 	-1   0    0    -1  
 $EndComp
+Text Label 3450 3800 2    50   ~ 0
+SETPOINT_PWM
+Text Label 3400 3900 2    50   ~ 0
+ISENSE_BUFD
 $EndSCHEMATC
