@@ -16,6 +16,7 @@ use stm32f0xx_hal as hal;
 use stm32f0xx_hal::prelude::*;
 use stm32f0xx_hal::timers::Timer;
 use stm32f0xx_hal::stm32::TIM1;
+use stm32f0xx_hal::stm32f0::stm32f0x0::interrupt;
 
 use embedded_hal::digital::v1::OutputPin;
 
@@ -61,14 +62,13 @@ impl Mode {
 
 struct Regulator<'a, DebugOutput> {
     // Pins
-    out_en: &'a mut dyn OutputPin,
-    led1: &'a mut dyn OutputPin,
-    led2: &'a mut dyn OutputPin,
+    out_en: hal::gpio::gpioa::PA1<hal::gpio::Output<hal::gpio::PushPull>>,
+    led1: hal::gpio::gpioa::PA6<hal::gpio::Output<hal::gpio::PushPull>>,
+    led2: hal::gpio::gpioa::PA7<hal::gpio::Output<hal::gpio::PushPull>>,
     button: Debounce<debounce::InvertedInputPin<hal::gpio::gpioa::PA9<hal::gpio::Input<hal::gpio::PullUp>>>, Timer<TIM1>>,
 
     // Environment
     modes: &'a [Mode],
-    cs: &'a cortex_m::interrupt::CriticalSection,
 
     // State
     mode_idx: u8,
@@ -106,17 +106,26 @@ fn dump_interrupts() {
     }
 }
 
+#[interrupt]
+fn EXTI4_15() {
+    unsafe {
+        (*hal::stm32::EXTI::ptr()).pr.modify(|_, w| w.pr2().set_bit());
+    }
+}
+
 #[cfg(feature="nosleep")]
-fn deepsleep(cs: &cortex_m::interrupt::CriticalSection) {
+fn deepsleep() {
     cortex_m::asm::wfi();
 }
 
 #[cfg(not(feature="nosleep"))]
-fn deepsleep(cs: &cortex_m::interrupt::CriticalSection) {
-    let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
-    scb.as_mut().unwrap().set_sleepdeep();
-    cortex_m::asm::wfi();
-    scb.as_mut().unwrap().clear_sleepdeep();
+fn deepsleep() {
+    cortex_m::interrupt::free(|cs| {
+        let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
+        scb.as_mut().unwrap().set_sleepdeep();
+        cortex_m::asm::wfi();
+        scb.as_mut().unwrap().clear_sleepdeep();
+    });
 }
 
 impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
@@ -148,7 +157,6 @@ impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
         cortex_m::interrupt::free(|cs| {
             let exti = MUTEX_EXTI.borrow(cs).borrow();
             exti.as_ref().unwrap().pr.modify(|_, w| w.pr9().set_bit());
-            hal::stm32::NVIC::unpend(hal::stm32::Interrupt::EXTI4_15);
         });
         //dump_interrupts();
     }
@@ -186,7 +194,7 @@ impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
         self.initialize();
         loop {
             while self.active_mode().is_off() {
-                deepsleep(self.cs);
+                deepsleep();
                 self.check_button();
             }
 
@@ -243,17 +251,21 @@ impl core::fmt::Write for NoWrite {
 fn main() -> ! {
     if let Some(mut cp) = cortex_m::Peripherals::take() {
         if let Some(mut p) = hal::stm32::Peripherals::take() {
-            cortex_m::interrupt::free(move |cs| {
+            let modes = [Mode::Off, Mode::from_duty(0xfd00), Mode::from_duty(0xffff)];
+            //let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
+
+            let mut reg = cortex_m::interrupt::free(|cs| {
                 let mut rcc = p.RCC.configure().sysclk(8.mhz()).freeze(&mut p.FLASH);
                 let gpioa = p.GPIOA.split(&mut rcc);
                 let gpiob = p.GPIOB.split(&mut rcc);
 
                 let _setpoint_pin = gpioa.pa4.into_alternate_af4(cs);
-                let mut out_en = gpioa.pa1.into_push_pull_output(cs);
+                let out_en = gpioa.pa1.into_push_pull_output(cs);
                 let mut led1 = gpioa.pa6.into_push_pull_output(cs);
                 let mut led2 = gpioa.pa7.into_push_pull_output(cs);
                 let isense_pin = gpioa.pa5.into_analog(cs);
                 let vbat_pin = gpiob.pb1.into_analog(cs);
+
                 let button = gpioa.pa9.into_pull_up_input(cs);
                 p.SYSCFG.exticr3.write(|w| w.exti9().pa9());
                 p.EXTI.imr.write(|w| w.mr9().set_bit());
@@ -269,31 +281,31 @@ fn main() -> ! {
                 led2.set_low();
 
                 #[cfg(feature="debug")]
-                let get_debug_output = || {
-                    let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
-                    let debug_uart_rx = gpioa.pa3.into_alternate_af1(cs);
-                    hal::serial::Serial::usart1(p.USART1,
-                                                (debug_uart_tx, debug_uart_rx),
-                                                115_200.bps(),
-                                                &mut rcc)
-                };
+                let debug_output = {
+                        let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
+                        let debug_uart_rx = gpioa.pa3.into_alternate_af1(cs);
+                        hal::serial::Serial::usart1(p.USART1,
+                                                    (debug_uart_tx, debug_uart_rx),
+                                                    115_200.bps(),
+                                                    &mut rcc)
+                    };
 
                 #[cfg(not(feature="debug"))]
-                let get_debug_output = || {
-                    NoWrite
-                };
+                let debug_output = NoWrite;
 
-                let debug_output = get_debug_output();
+                #[cfg(feature="debug")]
+                {
+                    p.DBGMCU.cr.modify(|_,w| w.dbg_stop().set_bit())
+                }
 
-                let modes = [Mode::Off, Mode::from_duty(0xfe00), Mode::from_duty(0xffff)];
-                //let modes = [Mode::Off, Mode::from_current(1000), Mode::from_current(2000)];
+                let mut debounce_timer = hal::timers::Timer::tim1(p.TIM1, 10.khz(), &mut rcc);
+                debounce_timer.listen(hal::timers::Event::TimeOut);
 
-                let mut reg = Regulator {
-                    cs: &cs,
-                    out_en: &mut out_en,
-                    led1: &mut led1,
-                    led2: &mut led2,
-                    button: Debounce::new(debounce::InvertedInputPin::new(button), hal::timers::Timer::tim1(p.TIM1, 10.khz(), &mut rcc), 1.khz()),
+                Regulator {
+                    out_en: out_en,
+                    led1: led1,
+                    led2: led2,
+                    button: Debounce::new(debounce::InvertedInputPin::new(button), debounce_timer, 1.khz()),
 
                     modes: &modes,
                     mode_idx: 0,
@@ -306,9 +318,9 @@ fn main() -> ! {
                     adc: hal::adc::Adc::new(p.ADC, &mut rcc),
                     debug_uart: debug_output,
                     output: 0,
-                };
-                reg.run();
-            })
+                }
+            });
+            reg.run();
         }
     }
     loop {

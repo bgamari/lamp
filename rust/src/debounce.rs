@@ -27,15 +27,8 @@ pub enum Event {
 
 pub struct Debounce<Pin, Timer: CountDown> {
     pin: Pin,
-    state: State,
     timer: Timer,
     debounce_period: Timer::Time,
-}
-
-enum State {
-    Idle,
-    Activating,
-    Activated,
 }
 
 impl<Pin: InputPin, Timer: CountDown> Debounce<Pin, Timer> {
@@ -45,7 +38,6 @@ impl<Pin: InputPin, Timer: CountDown> Debounce<Pin, Timer> {
     {
         Debounce {
             pin: pin,
-            state: State::Idle,
             timer: timer,
             debounce_period: debounce_period.into(),
         }
@@ -56,36 +48,23 @@ impl<Pin: InputPin, Timer: CountDown> Debounce<Pin, Timer> {
         Timer::Time: Copy
     {
         let s = self.pin.is_high();
-        match self.state {
-            State::Idle => {
-                if s {
-                    self.state = State::Activating;
-                    self.timer.start(self.debounce_period);
-                }
-                None
-            },
-            State::Activating => {
-                if s {
-                    match self.timer.wait() {
-                        Ok(()) => {
-                            self.state = State::Activated;
-                            Some(Event::PressStarted)
-                        }
-                        _ => None
+        if s {
+            self.timer.start(self.debounce_period);
+            loop {
+                match self.timer.wait() {
+                    Ok(()) => {
+                        break;
                     }
-                } else {
-                    self.state = State::Idle;
-                    None
+                    _ => continue,
                 }
-            },
-            State::Activated => {
-                if !s {
-                    self.state = State::Idle;
-                    Some(Event::PressEnded)
-                } else {
-                    None
-                }
-            },
+            }
+            if s {
+                Some(Event::PressStarted)
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 }
