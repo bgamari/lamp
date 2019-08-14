@@ -6,6 +6,7 @@ edition = "2018"
 
 [features]
 nosleep = []
+debug = []
 
 [dependencies]
 cortex-m = "^0.6"
@@ -26,7 +27,7 @@ version = "^0.2"
 features = [ "unproven" ]
 
 [dependencies.stm32f0xx-hal]
-version = "0.14.0"
+version = "0.15.0"
 features = [ "stm32f030x6", "rt" ]
 
 [[bin]]
@@ -38,7 +39,6 @@ bench = false
 panic = "abort"
 
 [profile.release]
-features = [ "debug" ]
 panic = "abort"
 codegen-units = 1
 debug = true

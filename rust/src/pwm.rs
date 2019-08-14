@@ -32,7 +32,7 @@ impl Pwm for TimPwm<TIM14> {
             let ptr = hal::stm32::TIM14::ptr();
             match channel {
                 TimerChannel::Ch1 => {
-                    (*ptr).ccmr1_output.modify(|_,w| w.oc1pe().clear_bit());
+                    (*ptr).ccmr1_output().modify(|_,w| w.oc1pe().clear_bit());
                     (*ptr).ccer.modify(|_,w| w.cc1e().clear_bit());
                 },
             }
@@ -44,7 +44,7 @@ impl Pwm for TimPwm<TIM14> {
             let ptr = hal::stm32::TIM14::ptr();
             match channel {
                 TimerChannel::Ch1 => {
-                    (*ptr).ccmr1_output.modify(|_,w| w.oc1pe().set_bit().oc1m().bits(6));
+                    (*ptr).ccmr1_output().modify(|_,w| w.oc1pe().set_bit().oc1m().bits(6));
                     (*ptr).ccer.modify(|_,w| w.cc1e().set_bit());
                 },
             }
