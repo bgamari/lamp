@@ -15,8 +15,8 @@ cortex-m-semihosting = "^0.3"
 panic-halt = "^0.2"
 stm32f0 = "*"
 
-[replace]
-"spin:0.5.0" = { path = "./spin-rs" }
+[patch.crates-io]
+spin = { path = "./spin-rs" }
 
 [dependencies.lazy_static]
 version = "^1.2"
