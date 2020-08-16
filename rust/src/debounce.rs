@@ -1,4 +1,4 @@
-use embedded_hal::digital::v1::InputPin;
+use embedded_hal::digital::v2::InputPin;
 use embedded_hal::timer::CountDown;
 
 pub struct InvertedInputPin<T> {
@@ -12,10 +12,11 @@ impl<T> InvertedInputPin<T> {
 }
 
 impl<T: InputPin> InputPin for InvertedInputPin<T> {
-    fn is_high(&self) -> bool {
+    type Error = <T as InputPin>::Error;
+    fn is_high(&self) -> Result<bool, Self::Error> {
         self.pin.is_low()
     }
-    fn is_low(&self) -> bool {
+    fn is_low(&self) -> Result<bool, Self::Error> {
         self.pin.is_high()
     }
 }
@@ -47,7 +48,7 @@ impl<Pin: InputPin, Timer: CountDown> Debounce<Pin, Timer> {
     where
         Timer::Time: Copy
     {
-        let s = self.pin.is_high();
+        let s = self.pin.is_high().unwrap_or(false);
         if s {
             self.timer.start(self.debounce_period);
             loop {

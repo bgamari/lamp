@@ -18,13 +18,12 @@ use stm32f0xx_hal::timers::Timer;
 use stm32f0xx_hal::stm32::TIM1;
 use stm32f0xx_hal::stm32f0::stm32f0x0::interrupt;
 
-use embedded_hal::digital::v1::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 use cortex_m_rt::entry;
 use cortex_m::interrupt::Mutex;
 use cortex_m_semihosting::hprintln;
 
-use core::fmt::Write;
 use core::cell::RefCell;
 
 mod pi_loop;
@@ -130,9 +129,9 @@ fn deepsleep() {
 
 impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
     fn blink_ms(&mut self, time: u16) {
-        self.led1.set_high();
+        self.led1.set_high().unwrap();
         self.delay.delay_ms(time);
-        self.led1.set_low();
+        self.led1.set_low().unwrap();
     }
 
     fn active_mode(&self) -> Mode {
@@ -169,10 +168,10 @@ impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
     fn set_mode(&mut self, mode: Mode) {
         //self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - self.active_mode().setpoint);
         if mode.is_off() {
-            self.out_en.set_low();
+            self.out_en.set_low().unwrap();
             self.setpoint_pwm.disable(pwm::TimerChannel::Ch1);
         } else {
-            self.out_en.set_high();
+            self.out_en.set_high().unwrap();
             self.setpoint_pwm.enable(pwm::TimerChannel::Ch1);
         }
         match mode {
@@ -296,8 +295,8 @@ fn main() -> ! {
 
                 let delay = hal::delay::Delay::new(cp.SYST, &rcc);
 
-                led1.set_high();
-                led2.set_low();
+                led1.set_high().unwrap();
+                led2.set_low().unwrap();
 
                 #[cfg(feature="debug")]
                 let debug_output = {
