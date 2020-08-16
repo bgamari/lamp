@@ -21,6 +21,7 @@ in stdenv.mkDerivation {
     in [ rustup rustChannel.rust gcc-arm-embedded ];
   TARGET_CC = "${nixpkgs.gcc-arm-embedded}/bin/arm-none-eabi-gcc";
   TARGET = "thumbv7m-none-eabi";
+  LD_LIBRARY_PATH = [ "${nixpkgs.zlib}/lib" ];
 }
 
 # Build instructions:
