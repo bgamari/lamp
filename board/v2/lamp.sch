@@ -1,6 +1,5 @@
 EESchema Schematic File Version 4
-LIBS:lamp-cache
-EELAYER 26 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -40,19 +39,6 @@ F 1 "GND" H 6905 4227 50  0000 C CNN
 F 2 "" H 6900 4400 50  0001 C CNN
 F 3 "" H 6900 4400 50  0001 C CNN
 	1    6900 4400
-	1    0    0    -1  
-$EndComp
-$Comp
-L MCU_ST_STM32F0:STM32F030F4Px U1
-U 1 1 5B36AAB9
-P 2350 3900
-F 0 "U1" H 2700 4550 50  0000 C CNN
-F 1 "STM32F030F4P6" H 2300 3850 50  0000 C CNN
-F 2 "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm" H 1950 3200 50  0001 R CNN
-F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00088500.pdf" H 2350 3900 50  0001 C CNN
-F 4 "ST Micro" H 0   0   50  0001 C CNN "MFR"
-F 5 "STM32F030F4P6" H 0   0   50  0001 C CNN "MPN"
-	1    2350 3900
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -305,7 +291,7 @@ F 3 "" H 2350 4700 50  0001 C CNN
 	1    2350 4700
 	1    0    0    -1  
 $EndComp
-Text Label 4350 3800 2    50   ~ 0
+Text Label 4250 3400 2    50   ~ 0
 SETPOINT
 $Comp
 L Device:CP C8
@@ -404,23 +390,23 @@ ISENSE
 $Comp
 L Device:C C3
 U 1 1 5B37F421
-P 3900 4000
-F 0 "C3" H 4015 4046 50  0000 L CNN
-F 1 "100n" H 4015 3955 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0603_1608Metric" H 3938 3850 50  0001 C CNN
-F 3 "~" H 3900 4000 50  0001 C CNN
-	1    3900 4000
+P 3800 3600
+F 0 "C3" H 3915 3646 50  0000 L CNN
+F 1 "100n" H 3915 3555 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 3838 3450 50  0001 C CNN
+F 3 "~" H 3800 3600 50  0001 C CNN
+	1    3800 3600
 	1    0    0    -1  
 $EndComp
 $Comp
 L Device:R R4
 U 1 1 5B37FEB6
-P 3700 3800
-F 0 "R4" V 3493 3800 50  0000 C CNN
-F 1 "10k" V 3584 3800 50  0000 C CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 3630 3800 50  0001 C CNN
-F 3 "~" H 3700 3800 50  0001 C CNN
-	1    3700 3800
+P 3600 3400
+F 0 "R4" V 3393 3400 50  0000 C CNN
+F 1 "10k" V 3484 3400 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 3530 3400 50  0001 C CNN
+F 3 "~" H 3600 3400 50  0001 C CNN
+	1    3600 3400
 	0    1    1    0   
 $EndComp
 Wire Wire Line
@@ -432,24 +418,24 @@ LED1
 Text Label 3300 4000 2    50   ~ 0
 LED1
 Wire Wire Line
-	3900 3850 3900 3800
+	3800 3450 3800 3400
 Wire Wire Line
-	3850 3800 3900 3800
-Connection ~ 3900 3800
+	3750 3400 3800 3400
+Connection ~ 3800 3400
 Wire Wire Line
-	3900 3800 4350 3800
+	3800 3400 4250 3400
 $Comp
 L power:GND #PWR012
 U 1 1 5B384FD6
-P 3900 4150
-F 0 "#PWR012" H 3900 3900 50  0001 C CNN
-F 1 "GND" H 3905 3977 50  0000 C CNN
-F 2 "" H 3900 4150 50  0001 C CNN
-F 3 "" H 3900 4150 50  0001 C CNN
-	1    3900 4150
+P 3800 3750
+F 0 "#PWR012" H 3800 3500 50  0001 C CNN
+F 1 "GND" H 3805 3577 50  0000 C CNN
+F 2 "" H 3800 3750 50  0001 C CNN
+F 3 "" H 3800 3750 50  0001 C CNN
+	1    3800 3750
 	1    0    0    -1  
 $EndComp
-Text Notes 3900 3650 0    50   ~ 0
+Text Notes 3800 3250 0    50   ~ 0
 f_cutoff = 150 Hz\n
 $Comp
 L Connector:Test_Point TP1
@@ -1077,16 +1063,10 @@ F 3 "" H 3500 6200 50  0001 C CNN
 $EndComp
 Text Notes 1250 4900 0    50   ~ 0
 G = 0.18
-Text Notes 2000 6150 0    50   ~ 0
-Pinning:\n  PA1: PA1\n  PA4: TIM14_CH1\n  PA5: ADC_IN5\n  PA6: TIM16_CH1\n  PA7: TIM17_CH1\n  PA9: PA9\n  PA13: SWDIO\n  PA14: SWCLK\n  PB1: ADC_IN9
-NoConn ~ 2850 4300
-NoConn ~ 2850 3400
 Wire Wire Line
 	2850 3900 3500 3900
 Wire Wire Line
 	3500 3900 3500 5850
-Wire Wire Line
-	2850 3800 3550 3800
 Wire Wire Line
 	6000 1450 6000 1300
 Connection ~ 6000 1300
@@ -1283,8 +1263,25 @@ F 5 "TLV2333IDGK" H 0   0   50  0001 C CNN "MPN"
 	3    6800 5550
 	-1   0    0    -1  
 $EndComp
-Text Label 3450 3800 2    50   ~ 0
+Text Label 3400 3400 2    50   ~ 0
 SETPOINT_PWM
 Text Label 3400 3900 2    50   ~ 0
 ISENSE_BUFD
+NoConn ~ 2850 3800
+Wire Wire Line
+	2850 3400 3450 3400
+$Comp
+L MCU_ST_STM32L0:STM32L041F6Px U1
+U 1 1 5FB179D6
+P 2350 3900
+F 0 "U1" H 2700 4550 50  0000 C CNN
+F 1 "STM32L041F6Px" H 2250 3850 50  0000 C CNN
+F 2 "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm" H 1950 3200 50  0001 R CNN
+F 3 "http://www.st.com/st-web-ui/static/active/en/resource/technical/document/datasheet/DM00152023.pdf" H 2350 3900 50  0001 C CNN
+	1    2350 3900
+	1    0    0    -1  
+$EndComp
+NoConn ~ 2850 4300
+Text Notes 2000 6150 0    50   ~ 0
+Pinning:\n  PA0:  TIM2_CH1\n  PA1:  PA1\n  PA5:  ADC_IN5\n  PA6:  TIM22_CH1\n  PA7:  TIM22_CH2\n  PA9:  PA9\n  PA13: SWDIO\n  PA14: SWCLK\n  PB1:  ADC_IN9
 $EndSCHEMATC

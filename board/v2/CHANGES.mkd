@@ -1,0 +1,11 @@
+# Initial state
+
+Started with STM32F030F4P6
+
+# Nov 2020
+
+* Moved to STM32L041F6P7.
+* Moved SETPOINT_PWM:
+  * PA4: previously TIM2_CH1, now NC
+  * PA0: previously NC, now TIM2_CH1
+
