@@ -5,7 +5,14 @@ Started with STM32F030F4P6
 # Nov 2020
 
 * Moved to STM32L041F6P7.
-* Moved SETPOINT_PWM:
-  * PA4: previously TIM2_CH1, now NC
-  * PA0: previously NC, now TIM2_CH1
+* Moved `SETPOINT_PWM:`
+  * PA4: previously `TIM2_CH1`, now NC
+  * PA0: previously NC, now `TIM2_CH1`
+
+# April 2021 (v3)
+
+ * Increase board size to 28mm diameter
+ * Use proper 1.27 mm pin socket for debug
+ * Move to STM32L051K MCU (QFN-32)
+ * Drop thermal cut-out
 

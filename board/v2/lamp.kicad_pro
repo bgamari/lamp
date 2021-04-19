@@ -44,12 +44,14 @@
         "silk_text_thickness": 0.12,
         "silk_text_upright": false,
         "zones": {
-          "45_degree_only": true,
+          "45_degree_only": false,
           "min_clearance": 0.16
         }
       },
       "diff_pair_dimensions": [],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "track_dangling|136950000|93000000|a9e29340-3126-421b-b384-45e15a2a0006|00000000-0000-0000-0000-000000000000"
+      ],
       "meta": {
         "filename": "board_design_settings.json",
         "version": 2
@@ -430,7 +432,7 @@
   },
   "sheets": [
     [
-      "f78d6323-87c9-49ec-a8c3-2f7e2ff9054e",
+      "63bc5ead-cfed-4761-ae7f-33e443e8e531",
       ""
     ]
   ],
