@@ -48,7 +48,13 @@
           "min_clearance": 0.16
         }
       },
-      "diff_pair_dimensions": [],
+      "diff_pair_dimensions": [
+        {
+          "gap": 0.0,
+          "via_gap": 0.0,
+          "width": 0.0
+        }
+      ],
       "drc_exclusions": [
         "track_dangling|136950000|93000000|a9e29340-3126-421b-b384-45e15a2a0006|00000000-0000-0000-0000-000000000000"
       ],
@@ -105,13 +111,21 @@
         "min_microvia_diameter": 0.19999999999999998,
         "min_microvia_drill": 0.09999999999999999,
         "min_silk_clearance": 0.0,
-        "min_through_hole_diameter": 0.3,
+        "min_through_hole_diameter": 0.19999999999999998,
         "min_track_width": 0.19999999999999998,
         "min_via_annular_width": 0.049999999999999996,
-        "min_via_diameter": 0.39999999999999997
+        "min_via_diameter": 0.39999999999999997,
+        "use_height_for_length_calcs": true
       },
-      "track_widths": [],
-      "via_dimensions": [],
+      "track_widths": [
+        0.0
+      ],
+      "via_dimensions": [
+        {
+          "diameter": 0.0,
+          "drill": 0.0
+        }
+      ],
       "zones_allow_external_fillets": false,
       "zones_use_no_outline": true
     },
@@ -326,8 +340,12 @@
     }
   },
   "libraries": {
-    "pinned_footprint_libs": [],
-    "pinned_symbol_libs": []
+    "pinned_footprint_libs": [
+      "lamp"
+    ],
+    "pinned_symbol_libs": [
+      "solar-charger"
+    ]
   },
   "meta": {
     "filename": "lamp.kicad_pro",
@@ -433,7 +451,7 @@
   },
   "sheets": [
     [
-      "63bc5ead-cfed-4761-ae7f-33e443e8e531",
+      "ad2e802a-ee0a-43ea-838f-9e53ce027eec",
       ""
     ]
   ],
