@@ -390,7 +390,6 @@
           "/ISENSE",
           "/LED_P",
           "/SW",
-          "/VIN",
           "/Vbat",
           "/Vin",
           "GND"
