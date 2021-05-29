@@ -16,3 +16,8 @@ Started with STM32F030F4P6
  * Move to STM32L051K MCU (QFN-32)
  * Drop thermal cut-out
 
+# May 26 (v4)
+
+ * Move to STM32G071 MCU (QFN-28)
+ * Move to LMR23625 Buck converter
+ * Add reverse polarity protection
