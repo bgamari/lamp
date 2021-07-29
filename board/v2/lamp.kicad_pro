@@ -55,21 +55,14 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        "clearance|127450000|89387500|88fab5a2-242a-40dc-87b7-d701039f6390|83c14d55-5dbe-4fdb-a084-47dbd358c88a",
-        "clearance|127450000|89387500|e5d6fc0e-2132-4cc6-8814-4c19a5897b75|83c14d55-5dbe-4fdb-a084-47dbd358c88a",
-        "clearance|127450000|89887500|fc2a8344-7abb-4d49-8bd7-8a85ac831a65|83c14d55-5dbe-4fdb-a084-47dbd358c88a",
-        "clearance|128050000|89387500|96143ce3-47e1-4f2a-9889-7ab433e93c4d|83c14d55-5dbe-4fdb-a084-47dbd358c88a",
-        "silk_overlap|127373807|92944467|6dbbab62-2706-4e40-b486-e76265ad3959|c3b2d5e7-c80d-43a7-bb35-d41e4f129be9",
-        "track_dangling|136950000|93000000|a9e29340-3126-421b-b384-45e15a2a0006|00000000-0000-0000-0000-000000000000"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "filename": "board_design_settings.json",
         "version": 2
       },
       "rule_severities": {
         "annular_width": "error",
-        "clearance": "error",
+        "clearance": "warning",
         "copper_edge_clearance": "error",
         "courtyards_overlap": "error",
         "diff_pair_gap_out_of_range": "error",
