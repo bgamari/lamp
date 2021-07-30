@@ -7,17 +7,30 @@ edition = "2018"
 [features]
 nosleep = []
 debug = []
+# set logging levels here
+default = [
+  "defmt-default",
+  # "dependency-a/defmt-trace",
+]
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
 
 [dependencies]
 cortex-m = "^0.6"
 cortex-m-rt = "^0.6"
 cortex-m-semihosting = "^0.3"
-panic-halt = "^0.2"
-stm32f0 = "*"
+stm32g0 = "*"
+defmt = "0.2.0"
+defmt-rtt = "0.2.0"
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
 [patch.crates-io]
 spin = { path = "./spin-rs" }
-
+ 
 [dependencies.lazy_static]
 version = "^1.2"
 features = [ "spin_no_std" ]
@@ -26,9 +39,9 @@ features = [ "spin_no_std" ]
 version = "^0.2"
 features = [ "unproven" ]
 
-[dependencies.stm32f0xx-hal]
-version = "0.15.0"
-features = [ "stm32f030x6", "rt" ]
+[dependencies.stm32g0xx-hal]
+version = "^0.1"
+features = [ "stm32g071", "rt" ]
 
 [[bin]]
 name = "lamp"

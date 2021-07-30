@@ -4,19 +4,19 @@
 #[macro_use]
 extern crate lazy_static;
 
-extern crate stm32f0xx_hal;
+extern crate stm32g0xx_hal;
 extern crate cortex_m;
 extern crate embedded_hal;
 
+use panic_probe as _;
+use defmt_rtt as _;
 
-#[allow(unused)]
-use panic_halt;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
-use stm32f0xx_hal as hal;
-use stm32f0xx_hal::prelude::*;
-use stm32f0xx_hal::timers::Timer;
-use stm32f0xx_hal::stm32::TIM1;
-use stm32f0xx_hal::stm32f0::stm32f0x0::interrupt;
+use stm32g0xx_hal as hal;
+use stm32g0xx_hal::prelude::*;
+use stm32g0xx_hal::stm32::TIM1;
+use stm32g0xx_hal::stm32g0::stm32g071::interrupt;
 
 use embedded_hal::digital::v2::OutputPin;
 
@@ -24,6 +24,7 @@ use cortex_m_rt::entry;
 use cortex_m::interrupt::Mutex;
 use cortex_m_semihosting::hprintln;
 
+/*
 use core::cell::RefCell;
 
 mod pi_loop;
@@ -345,3 +346,50 @@ fn main() -> ! {
         continue;
     }
 }
+*/
+
+#[entry]
+fn main() -> ! {
+    if let Some(mut cp) = cortex_m::Peripherals::take() {
+        if let Some(mut p) = hal::stm32::Peripherals::take() {
+            let mut reg = cortex_m::interrupt::free(|cs| {
+                let mut rcc = p.RCC.constrain();
+                let gpioa = p.GPIOA.split(&mut rcc);
+                let gpiob = p.GPIOB.split(&mut rcc);
+
+                let mut led1 = gpioa.pa6.into_push_pull_output();
+                let mut led2 = gpioa.pa7.into_push_pull_output();
+
+                let mut out_en = gpioa.pa1.into_push_pull_output();
+                out_en.set_high().unwrap();
+
+                let adc = hal::analog::adc::Adc::new(p.ADC, &mut rcc);
+                let isense_pin = gpioa.pa5.into_analog();
+                let mut setpoint = p.DAC.constrain(gpioa.pa4, &mut rcc).enable();
+
+                led1.set_high().unwrap();
+                led2.set_low().unwrap();
+                let mut i: u32 = 0;
+                loop {
+                    led1.set_high().unwrap();
+                    led1.set_low().unwrap();
+                    i += 1;
+                    //setpoint.set_value((i >> 8)  as u16);
+                    setpoint.set_value(500);
+                }
+            });
+        }
+    }
+    loop {
+        continue;
+    }
+}
+
+
+static COUNT: AtomicUsize = AtomicUsize::new(0);
+defmt::timestamp!("{=usize}", {
+    // NOTE(no-CAS) `timestamps` runs with interrupts disabled
+    let n = COUNT.load(Ordering::Relaxed);
+    COUNT.store(n + 1, Ordering::Relaxed);
+    n
+});
