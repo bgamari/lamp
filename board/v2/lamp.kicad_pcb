@@ -1,4 +1,4 @@
-(kicad_pcb (version 20210424) (generator pcbnew)
+(kicad_pcb (version 20210623) (generator pcbnew)
 
   (general
     (thickness 4.48)
@@ -106,7 +106,7 @@
   (net 13 "Net-(D1-Pad2)")
   (net 14 "Net-(J4-Pad1)")
   (net 15 "Net-(C7-Pad1)")
-  (net 16 "/~RESET")
+  (net 16 "/~{RESET}")
   (net 17 "unconnected-(J8-Pad8)")
   (net 18 "Net-(C10-Pad1)")
   (net 19 "Net-(R11-Pad2)")
@@ -2037,7 +2037,7 @@
     (pad "9" smd rect locked (at -1.95 -2.54) (size 2.4 0.74) (layers "B.Cu" "B.Paste" "B.Mask")
       (net 3 "GND") (pinfunction "GNDDetect") (pintype "passive") (tstamp c3a64da6-8d07-46a6-a5d6-44fccc7382a8))
     (pad "10" smd rect locked (at 1.95 -2.54) (size 2.4 0.74) (layers "B.Cu" "B.Paste" "B.Mask")
-      (net 16 "/~RESET") (pinfunction "~RESET~") (pintype "open_collector") (tstamp 6ebf5383-c005-4b8f-8dad-8648062afbef))
+      (net 16 "/~{RESET}") (pinfunction "~RESET~") (pintype "open_collector") (tstamp 6ebf5383-c005-4b8f-8dad-8648062afbef))
     (model "${KISYS3DMOD}/Connector_PinHeader_1.27mm.3dshapes/PinHeader_2x05_P1.27mm_Vertical_SMD.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
