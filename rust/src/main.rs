@@ -1,28 +1,27 @@
 #![no_main]
 #![no_std]
+#![feature(type_alias_impl_trait)]
+#![feature(min_type_alias_impl_trait)]
+#![feature(impl_trait_in_bindings)]
 
-#[macro_use]
-extern crate lazy_static;
-
-extern crate stm32g0xx_hal;
 extern crate cortex_m;
 extern crate embedded_hal;
 
 use panic_probe as _;
 use defmt_rtt as _;
+use defmt::{info};
+
+use embassy::executor::Spawner;
+use embassy::time::Delay;
+use embassy_stm32::rcc as rcc;
+use embassy_stm32::gpio as gpio;
+use embassy_stm32::Peripherals;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
-
-use stm32g0xx_hal as hal;
-use stm32g0xx_hal::prelude::*;
-use stm32g0xx_hal::stm32::TIM1;
-use stm32g0xx_hal::stm32g0::stm32g071::interrupt;
 
 use embedded_hal::digital::v2::OutputPin;
 
 use cortex_m_rt::entry;
-use cortex_m::interrupt::Mutex;
-use cortex_m_semihosting::hprintln;
 
 /*
 use core::cell::RefCell;
@@ -348,40 +347,41 @@ fn main() -> ! {
 }
 */
 
-#[entry]
-fn main() -> ! {
-    if let Some(mut cp) = cortex_m::Peripherals::take() {
-        if let Some(mut p) = hal::stm32::Peripherals::take() {
-            let mut reg = cortex_m::interrupt::free(|cs| {
-                let mut rcc = p.RCC.constrain();
-                let gpioa = p.GPIOA.split(&mut rcc);
-                let gpiob = p.GPIOB.split(&mut rcc);
+pub fn config() -> embassy_stm32::Config {
+    let mut rcc_config = rcc::Config::default();
+    //rcc_config.enable_debug_wfe = true;
+    embassy_stm32::Config::default().rcc(rcc_config)
+}
 
-                let mut led1 = gpioa.pa6.into_push_pull_output();
-                let mut led2 = gpioa.pa7.into_push_pull_output();
+#[embassy::main(config="config()")]
+async fn main(_spawner: Spawner, p: Peripherals) -> ! {
+    info!("Hello World!");
 
-                let mut out_en = gpioa.pa1.into_push_pull_output();
-                out_en.set_high().unwrap();
+    let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
+    let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
 
-                let adc = hal::analog::adc::Adc::new(p.ADC, &mut rcc);
-                let isense_pin = gpioa.pa5.into_analog();
-                let mut setpoint = p.DAC.constrain(gpioa.pa4, &mut rcc).enable();
+    let mut out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
+    out_en.set_high().unwrap();
 
-                led1.set_high().unwrap();
-                led2.set_low().unwrap();
-                let mut i: u32 = 0;
-                loop {
-                    led1.set_high().unwrap();
-                    led1.set_low().unwrap();
-                    i += 1;
-                    //setpoint.set_value((i >> 8)  as u16);
-                    setpoint.set_value(500);
-                }
-            });
-        }
-    }
+    //let adc = hal::analog::adc::Adc::new(p.ADC, &mut rcc);
+    //let isense_pin = p.PA5.into_analog();
+    //let mut setpoint = p.DAC.constrain(p.pa4, &mut rcc).enable();
+
+    let mut adc = embassy_stm32::adc::Adc::new(p.ADC1, &mut Delay);
+    let mut dac = embassy_stm32::dac::Dac::new(p.DAC1, p.PA4, gpio::NoPin);
+    dac.enable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
+    let mut isense_pin = p.PA5;
+
+    led1.set_high().unwrap();
+    led2.set_low().unwrap();
+    let mut i: u32 = 0;
     loop {
-        continue;
+        led1.set_high().unwrap();
+        led1.set_low().unwrap();
+        i += 1;
+        let x = adc.read(&mut isense_pin);
+        dac.set(embassy_stm32::dac::Channel::Ch1, embassy_stm32::dac::Value::Bit8((i >> 8) as u8)).unwrap();
+        embassy::time::Timer::after(embassy::time::Duration::from_millis(300)).await;
     }
 }
 

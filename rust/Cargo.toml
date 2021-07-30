@@ -3,6 +3,7 @@ name = "lamp"
 version = "0.1.0"
 authors = ["Ben Gamari <ben@smart-cactus.org>"]
 edition = "2018"
+resolver = "2"
 
 [features]
 nosleep = []
@@ -23,25 +24,18 @@ defmt-error = []
 cortex-m = "^0.6"
 cortex-m-rt = "^0.6"
 cortex-m-semihosting = "^0.3"
-stm32g0 = "*"
 defmt = "0.2.0"
 defmt-rtt = "0.2.0"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+embassy = { path = "./embassy/embassy", features = [ "defmt" ] }
+embassy-stm32 = { path = "./embassy/embassy-stm32", features = [ "stm32g071c8", "defmt" ] }
 
 [patch.crates-io]
 spin = { path = "./spin-rs" }
  
-[dependencies.lazy_static]
-version = "^1.2"
-features = [ "spin_no_std" ]
-
 [dependencies.embedded-hal]
 version = "^0.2"
 features = [ "unproven" ]
-
-[dependencies.stm32g0xx-hal]
-version = "^0.1"
-features = [ "stm32g071", "rt" ]
 
 [[bin]]
 name = "lamp"

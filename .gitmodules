@@ -4,3 +4,6 @@
 [submodule "kicad-symbols"]
 	path = kicad-symbols
 	url = https://github.com/KiCad/kicad-symbols.git
+[submodule "rust/embassy"]
+	path = rust/embassy
+	url = https://github.com/embassy-rs/embassy
