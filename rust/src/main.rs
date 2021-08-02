@@ -9,206 +9,40 @@ extern crate embedded_hal;
 
 use panic_probe as _;
 use defmt_rtt as _;
-use defmt::{info};
+use defmt::{unwrap, info};
 
+use embassy::util::mpsc;
 use embassy::executor::Spawner;
-use embassy::time::Delay;
-use embassy_stm32::rcc as rcc;
-use embassy_stm32::gpio as gpio;
-use embassy_stm32::Peripherals;
+use embassy::time::{Instant, Delay, Duration, Timer};
+use embassy_stm32::{rcc, gpio, exti, Peripherals};
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use embedded_hal::digital::v2::OutputPin;
 
-use cortex_m_rt::entry;
 
-/*
-use core::cell::RefCell;
-
-mod pi_loop;
-mod pwm;
-mod debounce;
-
-use debounce::Debounce;
-
-const VBAT_MICROVOLT_PER_CODEPOINT: u32 = 4587;
-
-#[derive(Clone, Copy, Debug)]
-enum Mode {
-    Off,
-    ConstDuty(u16),
-    ConstCurrent(u16)
-}
-
-
-impl Mode {
-    pub fn from_duty(duty: u16) -> Self {
-        Mode::ConstDuty(duty)
-    }
-
-    pub fn from_current(current: u16) -> Self {
-        Mode::ConstCurrent(current)
-    }
-
-    pub fn is_off(self) -> bool {
-        match self {
-            Mode::Off => true,
-            _   => false,
-        }
-    }
-}
-
-struct Regulator<'a, DebugOutput> {
-    // Pins
-    out_en: hal::gpio::gpioa::PA1<hal::gpio::Output<hal::gpio::PushPull>>,
-    led1: hal::gpio::gpioa::PA6<hal::gpio::Output<hal::gpio::PushPull>>,
-    led2: hal::gpio::gpioa::PA7<hal::gpio::Output<hal::gpio::PushPull>>,
-    button: Debounce<debounce::InvertedInputPin<hal::gpio::gpioa::PA9<hal::gpio::Input<hal::gpio::PullUp>>>, Timer<TIM1>>,
-
-    // Environment
-    modes: &'a [Mode],
-
-    // State
-    mode_idx: u8,
-    pi_loop: pi_loop::PILoop,
-    setpoint_pwm: pwm::TimPwm<hal::stm32::TIM14>,
-    delay: hal::delay::Delay,
-    vbat_pin: hal::gpio::gpiob::PB1<hal::gpio::Analog>,
-    isense_pin: hal::gpio::gpioa::PA5<hal::gpio::Analog>,
-    adc: hal::adc::Adc,
-    debug_uart: DebugOutput,
-    output: u16,
-}
-
-lazy_static! {
-    static ref MUTEX_EXTI:  Mutex<RefCell<Option<hal::stm32::EXTI>>>  = Mutex::new(RefCell::new(None));
-    static ref MUTEX_SCB:  Mutex<RefCell<Option<cortex_m::peripheral::SCB>>>  = Mutex::new(RefCell::new(None));
-}
-
-fn oversample_adc<Pin>(adc: &mut hal::adc::Adc, channel: &mut Pin, samples: u8) -> u16
-    where Pin: embedded_hal::adc::Channel<hal::adc::Adc, ID=u8>
+fn oversample_adc<T: embassy_stm32::adc::Instance>(
+    adc: &mut embassy_stm32::adc::Adc<T>,
+    channel: &mut impl embassy_stm32::adc::AdcPin<T>,
+    samples: u8
+    ) -> u16
 {
     let mut accum: u32 = 0;
     for _i in 0..samples {
-        let x: u16 = adc.read(channel).unwrap();
+        let x: u16 = adc.read(channel);
         accum += x as u32;
     }
     (accum / samples as u32) as u16
 }
 
-fn dump_interrupts() {
-    unsafe {
-        hprintln!("interrupt mask: {} {}",
-                  (*hal::stm32::NVIC::ptr()).ispr[0].read(),
-                  (*hal::stm32::NVIC::ptr()).ispr[0].read()).unwrap();
-    }
+async fn blink_ms<'a, T: gpio::Pin>(pin: &mut gpio::Output<'a, T>, time: Duration) {
+    unwrap!(pin.set_high());
+    Timer::after(time).await;
+    unwrap!(pin.set_low());
 }
 
-#[interrupt]
-fn EXTI4_15() {
-    unsafe {
-        (*hal::stm32::EXTI::ptr()).pr.modify(|_, w| w.pr2().set_bit());
-    }
-}
-
-#[cfg(feature="nosleep")]
-fn deepsleep() {
-    cortex_m::asm::wfi();
-}
-
-#[cfg(not(feature="nosleep"))]
-fn deepsleep() {
-    cortex_m::interrupt::free(|cs| {
-        let mut scb = MUTEX_SCB.borrow(cs).borrow_mut();
-        scb.as_mut().unwrap().set_sleepdeep();
-        cortex_m::asm::wfi();
-        scb.as_mut().unwrap().clear_sleepdeep();
-    });
-}
-
+/*
 impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
-    fn blink_ms(&mut self, time: u16) {
-        self.led1.set_high().unwrap();
-        self.delay.delay_ms(time);
-        self.led1.set_low().unwrap();
-    }
-
-    fn active_mode(&self) -> Mode {
-        self.modes[self.mode_idx as usize]
-    }
-
-    fn advance_mode(&mut self) {
-        self.mode_idx = (self.mode_idx + 1) % self.modes.len() as u8;
-        let mode = self.active_mode();
-        self.set_mode(mode);
-        //hprintln!("mode = {:?}", mode).unwrap();
-        self.blink_ms(300);
-    }
-
-    fn check_button(&mut self) {
-        match self.button.update() {
-            Some(debounce::Event::PressStarted) => self.advance_mode(),
-            _ => (),
-        }
-
-        // Clear interrupts
-        cortex_m::interrupt::free(|cs| {
-            let exti = MUTEX_EXTI.borrow(cs).borrow();
-            exti.as_ref().unwrap().pr.modify(|_, w| w.pr9().set_bit());
-        });
-        //dump_interrupts();
-    }
-
-    fn set_duty(&mut self, duty: u16) {
-        self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - duty);
-        write!(self.debug_uart, "duty {}\r\n", duty).unwrap();
-    }
-
-    fn set_mode(&mut self, mode: Mode) {
-        //self.setpoint_pwm.set_duty(pwm::TimerChannel::Ch1, 0xffff - self.active_mode().setpoint);
-        if mode.is_off() {
-            self.out_en.set_low().unwrap();
-            self.setpoint_pwm.disable(pwm::TimerChannel::Ch1);
-        } else {
-            self.out_en.set_high().unwrap();
-            self.setpoint_pwm.enable(pwm::TimerChannel::Ch1);
-        }
-        match mode {
-            Mode::ConstDuty(duty) => self.set_duty(duty),
-            Mode::ConstCurrent(setpoint) => self.pi_loop.set_setpoint(setpoint),
-            _ => ()
-        }
-    }
-
-    fn initialize(&mut self) {
-        self.pi_loop.set_gains(1, 1000);
-        self.pi_loop.set_setpoint(4000);
-        self.adc.set_sample_time(hal::adc::AdcSampleTime::T_71);
-        self.blink_ms(1000);
-        self.set_mode(self.modes[0]);
-    }
-
-    fn run(&mut self) {
-        self.initialize();
-        loop {
-            while self.active_mode().is_off() {
-                deepsleep();
-                self.check_button();
-            }
-
-            self.check_button();
-            self.iterate();
-            self.delay.delay_ms(10u16);
-        }
-    }
-
-    /// In microvolts.
-    pub fn read_batv(&mut self) -> u32 {
-        let bat_v: u16 = self.adc.read(&mut self.vbat_pin).unwrap();
-        bat_v as u32 * VBAT_MICROVOLT_PER_CODEPOINT
-    }
-
     fn iterate(&mut self) {
         let isense: u16 = oversample_adc::<hal::gpio::gpioa::PA5<hal::gpio::Analog>>(&mut self.adc, &mut self.isense_pin, 2);
         //let isense: u16 = self.adc.read(&mut self.isense_pin).unwrap();
@@ -237,120 +71,71 @@ impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
         }
     }
 }
-
-struct NoWrite;
-
-impl core::fmt::Write for NoWrite {
-    fn write_str(&mut self, _: &str) -> core::fmt::Result {
-        Ok(())
-    }
-}
-
-#[entry]
-fn main() -> ! {
-    if let Some(mut cp) = cortex_m::Peripherals::take() {
-        if let Some(mut p) = hal::stm32::Peripherals::take() {
-            // White
-            let modes = [
-                Mode::Off,
-                Mode::from_duty(65024),  // ~340 mW
-                Mode::from_duty(65040),  // ~800 mW
-                Mode::from_duty(65055),  // ~1000 mW
-                Mode::from_duty(65100),  // ~1800 mW
-                ];
-
-            /*
-            // Red
-            let modes = [Mode::Off,
-                Mode::from_duty(64850),  // 
-                Mode::from_duty(64860),  // 
-                Mode::from_duty(64880),  // 
-                Mode::from_duty(64900),  // 
-                ];
-            */
-
-            // Feedback
-            //let modes = [Mode::Off, Mode::from_current(100), Mode::from_current(200)];
-
-            let mut reg = cortex_m::interrupt::free(|cs| {
-                let mut rcc = p.RCC.configure().sysclk(8.mhz()).freeze(&mut p.FLASH);
-                let gpioa = p.GPIOA.split(&mut rcc);
-                let gpiob = p.GPIOB.split(&mut rcc);
-
-                let _setpoint_pin = gpioa.pa4.into_alternate_af4(cs);
-                let out_en = gpioa.pa1.into_push_pull_output(cs);
-                let mut led1 = gpioa.pa6.into_push_pull_output(cs);
-                let mut led2 = gpioa.pa7.into_push_pull_output(cs);
-                let isense_pin = gpioa.pa5.into_analog(cs);
-                let vbat_pin = gpiob.pb1.into_analog(cs);
-
-                let button = gpioa.pa9.into_pull_up_input(cs);
-                p.SYSCFG.exticr3.write(|w| w.exti9().pa9());
-                p.EXTI.imr.write(|w| w.mr9().set_bit());
-                p.EXTI.rtsr.write(|w| w.tr9().set_bit());
-                p.EXTI.ftsr.write(|w| w.tr9().set_bit());
-                cp.NVIC.enable(hal::stm32::Interrupt::EXTI4_15);
-                MUTEX_EXTI.borrow(cs).replace(Some(p.EXTI));
-                MUTEX_SCB.borrow(cs).replace(Some(cp.SCB));
-
-                let delay = hal::delay::Delay::new(cp.SYST, &rcc);
-
-                led1.set_high().unwrap();
-                led2.set_low().unwrap();
-
-                #[cfg(feature="debug")]
-                let debug_output = {
-                        let debug_uart_tx = gpioa.pa2.into_alternate_af1(cs);
-                        let debug_uart_rx = gpioa.pa3.into_alternate_af1(cs);
-                        hal::serial::Serial::usart1(p.USART1,
-                                                    (debug_uart_tx, debug_uart_rx),
-                                                    115_200.bps(),
-                                                    &mut rcc)
-                    };
-
-                #[cfg(not(feature="debug"))]
-                let debug_output = NoWrite;
-
-                #[cfg(feature="debug")]
-                {
-                    p.DBGMCU.cr.modify(|_,w| w.dbg_stop().set_bit())
-                }
-
-                let mut debounce_timer = hal::timers::Timer::tim1(p.TIM1, 10.khz(), &mut rcc);
-                debounce_timer.listen(hal::timers::Event::TimeOut);
-
-                Regulator {
-                    out_en: out_en,
-                    led1: led1,
-                    led2: led2,
-                    button: Debounce::new(debounce::InvertedInputPin::new(button), debounce_timer, 1.khz()),
-
-                    modes: &modes,
-                    mode_idx: 0,
-
-                    pi_loop: pi_loop::PILoop::new(),
-                    setpoint_pwm: pwm::TimPwm::new(p.TIM14, 10.khz(), &mut rcc),
-                    delay: delay,
-                    vbat_pin: vbat_pin,
-                    isense_pin: isense_pin,
-                    adc: hal::adc::Adc::new(p.ADC, &mut rcc),
-                    debug_uart: debug_output,
-                    output: 0,
-                }
-            });
-            reg.run();
-        }
-    }
-    loop {
-        continue;
-    }
-}
 */
 
 pub fn config() -> embassy_stm32::Config {
-    let mut rcc_config = rcc::Config::default();
+    let rcc_config = rcc::Config::default();
     //rcc_config.enable_debug_wfe = true;
     embassy_stm32::Config::default().rcc(rcc_config)
+}
+
+#[derive(Clone, Copy, Debug)]
+enum Mode {
+    Off,
+    ConstVoltage(u32),
+    ConstCurrent(u16),
+}
+
+impl Mode {
+    pub fn is_off(self) -> bool {
+        match self {
+            Mode::Off => true,
+            _   => false,
+        }
+    }
+}
+
+
+#[embassy::task]
+async fn feedback() -> () {
+}
+
+enum ButtonEvent {
+    ShortPress, LongPress
+}
+
+async fn debounce_button<'d, T, M, const N: usize>(
+    btn: &'d mut embassy_stm32::exti::ExtiInput<'d, T>,
+    event_chan: mpsc::Sender<'d, M, ButtonEvent, N>)
+  where
+    M: embassy::util::Mutex<Data = ()>,
+    T: gpio::Pin + embedded_hal::digital::v2::InputPin
+{
+    use crate::embedded_hal::digital::v2::InputPin;
+    use embassy_traits::gpio::{WaitForRisingEdge, WaitForFallingEdge};
+
+    loop {
+        btn.wait_for_falling_edge();
+        let t0 = Instant::now();
+
+        btn.wait_for_rising_edge();
+        let t1 = Instant::now();
+
+        let dt = t1 - t0;
+        const MIN_PRESS_TIME: Duration = Duration::from_millis(10);
+        const MAX_SHORT_PRESS_TIME: Duration = Duration::from_millis(1000);
+        const MAX_LONG_PRESS_TIME: Duration = Duration::from_millis(4000);
+        if dt < MIN_PRESS_TIME {
+            continue;
+        } else if dt < MAX_SHORT_PRESS_TIME {
+            // N.B. Drop events if full
+            let _ = event_chan.try_send(ButtonEvent::ShortPress);
+        } else if dt < MAX_LONG_PRESS_TIME {
+            let _ = event_chan.try_send(ButtonEvent::LongPress);
+        } else {
+            continue;
+        }
+    }
 }
 
 #[embassy::main(config="config()")]
@@ -359,13 +144,11 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
 
     let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
     let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
+    let mut btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
+    let btn = exti::ExtiInput::new(btn_pin, p.EXTI8);
 
     let mut out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
     out_en.set_high().unwrap();
-
-    //let adc = hal::analog::adc::Adc::new(p.ADC, &mut rcc);
-    //let isense_pin = p.PA5.into_analog();
-    //let mut setpoint = p.DAC.constrain(p.pa4, &mut rcc).enable();
 
     let mut adc = embassy_stm32::adc::Adc::new(p.ADC1, &mut Delay);
     let mut dac = embassy_stm32::dac::Dac::new(p.DAC1, p.PA4, gpio::NoPin);
@@ -381,7 +164,7 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
         i += 1;
         let x = adc.read(&mut isense_pin);
         dac.set(embassy_stm32::dac::Channel::Ch1, embassy_stm32::dac::Value::Bit8((i >> 8) as u8)).unwrap();
-        embassy::time::Timer::after(embassy::time::Duration::from_millis(300)).await;
+        Timer::after(Duration::from_millis(300)).await;
     }
 }
 
