@@ -6,8 +6,8 @@
 
   (title_block
     (title "LED driver")
-    (date "2021-05-26")
-    (rev "4")
+    (date "2021-07-30")
+    (rev "5")
     (company "Ben Gamari")
   )
 
@@ -4643,7 +4643,7 @@
     (property "Reference" "C10" (id 0) (at 158.496 66.1416 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Value" "4.7n" (id 1) (at 158.496 68.453 0)
+    (property "Value" "2.2u" (id 1) (at 158.496 68.453 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
     (property "Footprint" "Capacitor_SMD:C_0603_1608Metric" (id 2) (at 156.5402 71.12 0)
@@ -4678,8 +4678,8 @@
   (symbol (lib_id "Device:C") (at 196.85 45.72 90) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 9eb5f14f-59d9-4d05-b707-8d55d9e6a286)
-    (property "Reference" "C13" (id 0) (at 196.85 39.37 90))
-    (property "Value" "10n" (id 1) (at 196.85 41.91 90))
+    (property "Reference" "C13" (id 0) (at 196.85 38.1 90))
+    (property "Value" "2.2u" (id 1) (at 196.85 40.64 90))
     (property "Footprint" "Capacitor_SMD:C_0603_1608Metric" (id 2) (at 200.66 44.7548 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -4795,7 +4795,7 @@
     (uuid 8a03bbc5-de75-4f92-b860-9775e48be713)
     (property "Reference" "U2" (id 0) (at 239.395 100.33 0))
     (property "Value" "TLV333" (id 1) (at 237.49 102.87 0))
-    (property "Footprint" "Package_TO_SOT_SMD:SOT-23-5" (id 2) (at 242.57 106.68 0)
+    (property "Footprint" "Package_TO_SOT_SMD:SOT-353_SC-70-5_Handsoldering" (id 2) (at 242.57 106.68 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "http://www.ti.com/lit/ds/symlink/lm321.pdf" (id 3) (at 242.57 106.68 0)
@@ -5067,7 +5067,7 @@
       (reference "C9") (unit 1) (value "100n") (footprint "Capacitor_SMD:C_0603_1608Metric")
     )
     (path "/00000000-0000-0000-0000-00005b36b26c"
-      (reference "C10") (unit 1) (value "4.7n") (footprint "Capacitor_SMD:C_0603_1608Metric")
+      (reference "C10") (unit 1) (value "2.2u") (footprint "Capacitor_SMD:C_0603_1608Metric")
     )
     (path "/00000000-0000-0000-0000-00005b41c399"
       (reference "C11") (unit 1) (value "100n") (footprint "Capacitor_SMD:C_0603_1608Metric")
@@ -5076,7 +5076,7 @@
       (reference "C12") (unit 1) (value "10n") (footprint "Capacitor_SMD:C_0603_1608Metric")
     )
     (path "/9eb5f14f-59d9-4d05-b707-8d55d9e6a286"
-      (reference "C13") (unit 1) (value "10n") (footprint "Capacitor_SMD:C_0603_1608Metric")
+      (reference "C13") (unit 1) (value "2.2u") (footprint "Capacitor_SMD:C_0603_1608Metric")
     )
     (path "/00000000-0000-0000-0000-00005b36b3cd"
       (reference "C14") (unit 1) (value "22u") (footprint "Capacitor_Tantalum_SMD:CP_EIA-7343-15_Kemet-W")
@@ -5163,7 +5163,7 @@
       (reference "U1") (unit 1) (value "STM32G071GxU") (footprint "lamp:QFN-28_4.3x4.3_Pitch0.5mm")
     )
     (path "/8a03bbc5-de75-4f92-b860-9775e48be713"
-      (reference "U2") (unit 1) (value "TLV333") (footprint "Package_TO_SOT_SMD:SOT-23-5")
+      (reference "U2") (unit 1) (value "TLV333") (footprint "Package_TO_SOT_SMD:SOT-353_SC-70-5_Handsoldering")
     )
     (path "/00000000-0000-0000-0000-00005b36da81"
       (reference "U3") (unit 1) (value "LP2985-33") (footprint "Package_TO_SOT_SMD:SOT-23-5")
