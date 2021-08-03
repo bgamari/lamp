@@ -3,6 +3,9 @@
 #![feature(type_alias_impl_trait)]
 #![feature(min_type_alias_impl_trait)]
 #![feature(impl_trait_in_bindings)]
+#![feature(inherent_associated_types)]
+#![feature(never_type)]
+#![feature(async_closure)]
 
 extern crate cortex_m;
 extern crate embedded_hal;
@@ -12,6 +15,7 @@ use defmt_rtt as _;
 use defmt::{unwrap, info};
 
 use embassy::util::mpsc;
+use embassy::util::Forever;
 use embassy::executor::Spawner;
 use embassy::time::{Instant, Delay, Duration, Timer};
 use embassy_stm32::{rcc, gpio, exti, Peripherals};
@@ -20,6 +24,8 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 use embedded_hal::digital::v2::OutputPin;
 
+mod button;
+use crate::button::{Button, ButtonEvent};
 
 fn oversample_adc<T: embassy_stm32::adc::Instance>(
     adc: &mut embassy_stm32::adc::Adc<T>,
@@ -100,52 +106,18 @@ impl Mode {
 async fn feedback() -> () {
 }
 
-enum ButtonEvent {
-    ShortPress, LongPress
-}
-
-async fn debounce_button<'d, T, M, const N: usize>(
-    btn: &'d mut embassy_stm32::exti::ExtiInput<'d, T>,
-    event_chan: mpsc::Sender<'d, M, ButtonEvent, N>)
-  where
-    M: embassy::util::Mutex<Data = ()>,
-    T: gpio::Pin + embedded_hal::digital::v2::InputPin
-{
-    use crate::embedded_hal::digital::v2::InputPin;
-    use embassy_traits::gpio::{WaitForRisingEdge, WaitForFallingEdge};
-
-    loop {
-        btn.wait_for_falling_edge();
-        let t0 = Instant::now();
-
-        btn.wait_for_rising_edge();
-        let t1 = Instant::now();
-
-        let dt = t1 - t0;
-        const MIN_PRESS_TIME: Duration = Duration::from_millis(10);
-        const MAX_SHORT_PRESS_TIME: Duration = Duration::from_millis(1000);
-        const MAX_LONG_PRESS_TIME: Duration = Duration::from_millis(4000);
-        if dt < MIN_PRESS_TIME {
-            continue;
-        } else if dt < MAX_SHORT_PRESS_TIME {
-            // N.B. Drop events if full
-            let _ = event_chan.try_send(ButtonEvent::ShortPress);
-        } else if dt < MAX_LONG_PRESS_TIME {
-            let _ = event_chan.try_send(ButtonEvent::LongPress);
-        } else {
-            continue;
-        }
-    }
-}
+static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, embassy_stm32::peripherals::PA8>> = Forever::new();
 
 #[embassy::main(config="config()")]
-async fn main(_spawner: Spawner, p: Peripherals) -> ! {
+async fn main(spawner: Spawner, p: Peripherals) -> ! {
     info!("Hello World!");
 
     let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
     let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
-    let mut btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
-    let btn = exti::ExtiInput::new(btn_pin, p.EXTI8);
+    let btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
+    let btn_in = exti::ExtiInput::new(btn_pin, p.EXTI8);
+    let btn = BUTTON.put(Button::new(btn_in));
+    let mut btn_events = btn.run(&spawner);
 
     let mut out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
     out_en.set_high().unwrap();
@@ -161,13 +133,13 @@ async fn main(_spawner: Spawner, p: Peripherals) -> ! {
     loop {
         led1.set_high().unwrap();
         led1.set_low().unwrap();
+        btn_events.recv().await;
         i += 1;
         let x = adc.read(&mut isense_pin);
         dac.set(embassy_stm32::dac::Channel::Ch1, embassy_stm32::dac::Value::Bit8((i >> 8) as u8)).unwrap();
         Timer::after(Duration::from_millis(300)).await;
     }
 }
-
 
 static COUNT: AtomicUsize = AtomicUsize::new(0);
 defmt::timestamp!("{=usize}", {
