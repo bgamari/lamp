@@ -125,16 +125,27 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let mut isense_pin = p.PA5;
 
     led1.set_high().unwrap();
-    led2.set_low().unwrap();
-    let mut i: u32 = 0;
+    led2.set_high().unwrap();
+    //led2.set_low().unwrap();
+    let mut i: usize = 0;
+
+    const MODES: [u8; 12] = [0, 50, 75, 90, 100, 110, 125, 140, 150, 175, 200, 255];
     loop {
         led1.set_high().unwrap();
+        led2.set_high().unwrap();
+        let delay = Duration::from_millis(100);
+        Timer::after(delay).await;
+
         led1.set_low().unwrap();
+        led2.set_low().unwrap();
         btn_events.recv().await;
         i += 1;
         let x = adc.read(&mut isense_pin);
-        dac.set(embassy_stm32::dac::Channel::Ch1, embassy_stm32::dac::Value::Bit8((i >> 8) as u8)).unwrap();
-        Timer::after(Duration::from_millis(300)).await;
+        let y = MODES[i % MODES.len()];
+        info!("hi adc={}, dac={}", x, y);
+        let y = embassy_stm32::dac::Value::Bit8(y);
+        dac.set(embassy_stm32::dac::Channel::Ch1, y).unwrap();
+        Timer::after(delay).await;
     }
 }
 
