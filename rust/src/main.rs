@@ -1,8 +1,6 @@
 #![no_main]
 #![no_std]
 #![feature(type_alias_impl_trait)]
-#![feature(min_type_alias_impl_trait)]
-#![feature(impl_trait_in_bindings)]
 #![feature(inherent_associated_types)]
 #![feature(never_type)]
 #![feature(async_closure)]
@@ -80,9 +78,8 @@ impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
 */
 
 pub fn config() -> embassy_stm32::Config {
-    let rcc_config = rcc::Config::default();
     //rcc_config.enable_debug_wfe = true;
-    embassy_stm32::Config::default().rcc(rcc_config)
+    embassy_stm32::Config::default()
 }
 
 #[derive(Clone, Copy, Debug)]
