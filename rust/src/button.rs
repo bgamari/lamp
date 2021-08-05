@@ -51,10 +51,10 @@ async fn debounce_button<'d, T, M, const N: usize>(
     use embassy_traits::gpio::{WaitForRisingEdge, WaitForFallingEdge};
 
     loop {
-        btn.wait_for_falling_edge();
+        btn.wait_for_falling_edge().await;
         let t0 = Instant::now();
 
-        btn.wait_for_rising_edge();
+        btn.wait_for_rising_edge().await;
         let t1 = Instant::now();
 
         let dt = t1 - t0;
