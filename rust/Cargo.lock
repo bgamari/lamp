@@ -356,7 +356,6 @@ name = "embassy"
 version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
- "cast",
  "cortex-m 0.7.3",
  "critical-section",
  "defmt",
