@@ -1,6 +1,6 @@
-use defmt::unwrap;
+use defmt::{debug, unwrap};
 use embassy::executor::Spawner;
-use embassy::time::{Instant, Delay, Duration, Timer};
+use embassy::time::{Instant, Duration};
 use embassy_stm32::{gpio, exti};
 use embassy::util::mpsc;
 
@@ -58,17 +58,21 @@ async fn debounce_button<'d, T, M, const N: usize>(
         let t1 = Instant::now();
 
         let dt = t1 - t0;
-        const MIN_PRESS_TIME: Duration = Duration::from_millis(10);
+        const MIN_PRESS_TIME: Duration = Duration::from_millis(3);
         const MAX_SHORT_PRESS_TIME: Duration = Duration::from_millis(1000);
         const MAX_LONG_PRESS_TIME: Duration = Duration::from_millis(4000);
         if dt < MIN_PRESS_TIME {
+            debug!("too short press {} {}", t0, t1);
             continue;
         } else if dt < MAX_SHORT_PRESS_TIME {
             // N.B. Drop events if full
             let _ = event_chan.try_send(ButtonEvent::ShortPress);
+            debug!("short press {} {}", t0, t1);
         } else if dt < MAX_LONG_PRESS_TIME {
             let _ = event_chan.try_send(ButtonEvent::LongPress);
+            debug!("long press {} {}", t0, t1);
         } else {
+            debug!("too long press {} {}", t0, t1);
             continue;
         }
     }
