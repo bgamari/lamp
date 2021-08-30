@@ -123,6 +123,7 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let mut dac = embassy_stm32::dac::Dac::new(p.DAC1, p.PA4, gpio::NoPin);
     dac.enable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
     let mut isense_pin = p.PA5;
+    let mut vbat_pin = p.PB1;
 
     led1.set_high().unwrap();
     led2.set_high().unwrap();
@@ -130,6 +131,19 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let mut i: usize = 0;
 
     const MODES: [u8; 12] = [0, 50, 75, 90, 100, 110, 125, 140, 150, 175, 200, 255];
+    let mut temp = adc.enable_temperature();
+
+    let mut report = |i| {
+        let x = adc.read(&mut isense_pin);
+        let isense_mA = adc.to_millivolts(x) as u32 * 1000 / 1010;
+
+        let x = adc.read(&mut vbat_pin);
+        let vbat_mV = adc.to_millivolts(x) as u32 * 4100 / 1000;
+
+        let y = MODES[i % MODES.len()];
+        info!("hi Isense={} mA, Vbat={}, dac={}", isense_mA, vbat_mV, y);
+    };
+
     loop {
         led1.set_high().unwrap();
         led2.set_high().unwrap();
@@ -140,12 +154,13 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
         led2.set_low().unwrap();
         btn_events.recv().await;
         i += 1;
-        let x = adc.read(&mut isense_pin);
         let y = MODES[i % MODES.len()];
-        info!("hi adc={}, dac={}", x, y);
         let y = embassy_stm32::dac::Value::Bit8(y);
         dac.set(embassy_stm32::dac::Channel::Ch1, y).unwrap();
         Timer::after(delay).await;
+        report(i);
+        Timer::after(delay).await;
+        report(i);
     }
 }
 

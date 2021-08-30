@@ -38,9 +38,9 @@ dependencies = [
 
 [[package]]
 name = "atomic-polyfill"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30302dda7a66f8c55932ebf208f7def840743ff64d495e9ceffcd97c18f11d39"
+checksum = "4a93ba5d6053837dbb76fd0ae26fd4f0c1859a008a783b0ce072b797c07f0f27"
 dependencies = [
  "cortex-m 0.7.3",
 ]
@@ -88,6 +88,19 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+
+[[package]]
+name = "bxcan"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76ebc678b8ec2b87e3c3a77a1c4449006dd079e40d66fe0758f2d41a3b561fff"
+dependencies = [
+ "bitflags",
+ "defmt",
+ "embedded-can",
+ "nb 1.0.0",
+ "vcell",
+]
 
 [[package]]
 name = "cast"
@@ -391,6 +404,7 @@ version = "0.1.0"
 dependencies = [
  "atomic-polyfill",
  "bare-metal 1.0.0",
+ "bxcan",
  "cfg-if",
  "cortex-m 0.7.3",
  "cortex-m-rt",
@@ -415,6 +429,15 @@ version = "0.1.0"
 dependencies = [
  "defmt",
  "embedded-hal",
+]
+
+[[package]]
+name = "embedded-can"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12719661dce6080d174aa0a9df1f61756022dc105c1761bcd37091a0ee5de635"
+dependencies = [
+ "nb 1.0.0",
 ]
 
 [[package]]
