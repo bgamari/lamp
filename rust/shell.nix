@@ -11,7 +11,9 @@ let
     url = "https://github.com/mozilla/nixpkgs-mozilla";
     rev = "4a07484cf0e49047f82d83fd119acffbad3b235f";
   };
-in with nixpkgs; let
+in with nixpkgs;
+
+let
   rustChannel = rustChannelOfTargets
     "nightly"
     "2021-08-03"
@@ -26,7 +28,7 @@ in stdenv.mkDerivation {
   name = "rust";
   buildInputs = 
     let
-    in [ rustChannel gcc-arm-embedded ] ++
+    in [ rustChannel gcc-arm-embedded (import ./embassy.nix {pkgs = nixpkgs;}) ] ++
          (with nixpkgs; [ pkgconfig zlib libusb openocd ]);
   TARGET_CC = "${nixpkgs.gcc-arm-embedded}/bin/arm-none-eabi-gcc";
   TARGET = "thumbv6m-none-eabi";
@@ -36,7 +38,4 @@ in stdenv.mkDerivation {
 
 # Build instructions:
 #
-# rustup target add $TARGET
-# rustup update
-# cargo rustc --release --target thumbv6m-none-eabi -- -C link-arg=-Tlink.x
-#
+# cargo build
