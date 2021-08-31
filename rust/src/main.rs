@@ -68,13 +68,6 @@ impl Mode {
     pub const fn from_milliamps(i: u32) -> Self {
         Mode::ConstCurrent { setpoint_mA: i }
     }
-
-    pub const fn is_off(self) -> bool {
-        match self {
-            Mode::Off => true,
-            _   => false,
-        }
-    }
 }
 
 struct Regulator<'a> {
