@@ -5,18 +5,17 @@
 #![feature(never_type)]
 #![feature(async_closure)]
 
-extern crate cortex_m;
-extern crate embedded_hal;
-
 use panic_probe as _;
 use defmt_rtt as _;
 use defmt::{unwrap, info};
 
-use embassy::util::mpsc;
+use embassy::util::{mpsc, CriticalSectionMutex};
 use embassy::util::Forever;
 use embassy::executor::Spawner;
 use embassy::time::{Instant, Delay, Duration, Timer};
 use embassy_stm32::{rcc, gpio, exti, Peripherals};
+
+use futures::FutureExt;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 
@@ -82,15 +81,23 @@ pub fn config() -> embassy_stm32::Config {
     embassy_stm32::Config::default()
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(defmt::Format, Clone, Copy, Debug)]
 enum Mode {
     Off,
-    ConstVoltage(u32),
-    ConstCurrent(u16),
+    ConstVoltage {
+        setpoint_mV: u32,
+    },
+    ConstCurrent {
+        setpoint_mA: u32,
+    },
 }
 
 impl Mode {
-    pub fn is_off(self) -> bool {
+    pub const fn from_millivolts(v: u32) -> Self {
+        Mode::ConstVoltage { setpoint_mV: v }
+    }
+
+    pub const fn is_off(self) -> bool {
         match self {
             Mode::Off => true,
             _   => false,
@@ -98,11 +105,95 @@ impl Mode {
     }
 }
 
-
-#[embassy::task]
-async fn feedback() -> () {
+struct Regulator<'a> {
+    adc: embassy_stm32::adc::Adc<'a, embassy_stm32::peripherals::ADC1>,
+    dac: embassy_stm32::dac::Dac<'a, embassy_stm32::peripherals::DAC1>,
+    isense_pin: embassy_stm32::peripherals::PA5,
+    vbat_pin: embassy_stm32::peripherals::PB1,
 }
 
+impl<'a> Regulator<'a> {
+    fn read_isense_mA(&mut self) -> u32 {
+        let x = self.adc.read(&mut self.isense_pin);
+        let isense_mA = self.adc.to_millivolts(x) as u32 * 1000 / 1010;
+        isense_mA
+    }
+
+    fn read_vbat_mV(&mut self) -> u32 {
+        let x = self.adc.read(&mut self.vbat_pin);
+        let vbat_mV = self.adc.to_millivolts(x) as u32 * 4090 / 1000;
+        vbat_mV
+    }
+
+    fn set_output_dac(&mut self, cp: u8) {
+        let y = embassy_stm32::dac::Value::Bit8(cp);
+        self.dac.set(embassy_stm32::dac::Channel::Ch1, y).unwrap();
+    }
+}
+
+#[embassy::task]
+async fn feedback(
+    mut msgs: mpsc::Receiver<'static, CriticalSectionMutex<()>, Mode, 1>,
+    mut reg: Regulator<'static>) -> () {
+    let mut out_cp: u8 = 100;
+    let mut state: Mode = Mode::Off;
+    loop {
+        match state {
+            Mode::Off => {
+                match msgs.recv().await {
+                    Some(s) => {
+                        state = s;
+                    },
+                    None => {
+                        return;
+                    },
+                }
+            },
+            Mode::ConstVoltage { setpoint_mV } => {
+                let cp = setpoint_mV as u8; // TODO
+                reg.set_output_dac(cp);
+                match msgs.recv().await {
+                    Some(s) => {
+                        state = s;
+                    },
+                    None => {
+                        return;
+                    },
+                }
+            },
+            Mode::ConstCurrent { setpoint_mA } => {
+                let delay = Duration::from_millis(100);
+                const STEP: u8 = 1;
+                loop {
+                    let res = futures::select_biased! {
+                        s = msgs.recv().fuse() => Some(s),
+                        () = Timer::after(delay).fuse() => None,
+                    };
+                    match res {
+                        Some(None) => {
+                            return;
+                        },
+                        Some(Some(new_state)) => {
+                            state = new_state;
+                            break;
+                        },
+                        None => (),
+                    }
+
+                    let isense_mA = reg.read_isense_mA();
+                    if isense_mA < setpoint_mA {
+                        out_cp += STEP;
+                    } else {
+                        out_cp -= STEP;
+                    }
+                    reg.set_output_dac(out_cp);
+                }
+            },
+        }
+    }
+}
+
+static MSGS_CHAN: Forever<mpsc::Channel<embassy::util::CriticalSectionMutex<()>, Mode, 1>> = Forever::new();
 static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, embassy_stm32::peripherals::PA8>> = Forever::new();
 
 #[embassy::main(config="config()")]
@@ -128,39 +219,65 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     led1.set_high().unwrap();
     led2.set_high().unwrap();
     //led2.set_low().unwrap();
-    let mut i: usize = 0;
 
-    const MODES: [u8; 12] = [0, 50, 75, 90, 100, 110, 125, 140, 150, 175, 200, 255];
-    let mut temp = adc.enable_temperature();
+    const MODES: [Mode; 12] = [
+        Mode::from_millivolts(0),
+        Mode::from_millivolts(50),
+        Mode::from_millivolts(75),
+        Mode::from_millivolts(90),
+        Mode::from_millivolts(100),
+        Mode::from_millivolts(110),
+        Mode::from_millivolts(125),
+        Mode::from_millivolts(140),
+        Mode::from_millivolts(150),
+        Mode::from_millivolts(175),
+        Mode::from_millivolts(200),
+        Mode::from_millivolts(255),
+    ];
 
-    let mut report = |i| {
-        let x = adc.read(&mut isense_pin);
-        let isense_mA = adc.to_millivolts(x) as u32 * 1000 / 1010;
-
-        let x = adc.read(&mut vbat_pin);
-        let vbat_mV = adc.to_millivolts(x) as u32 * 4100 / 1000;
-
-        let y = MODES[i % MODES.len()];
-        info!("hi Isense={} mA, Vbat={}, dac={}", isense_mA, vbat_mV, y);
+    let mut report = |mode: Mode, reg: &mut Regulator| {
+        let isense_mA = reg.read_isense_mA();
+        let vbat_mV = reg.read_vbat_mV();
+        info!("hi Isense={} mA, Vbat={}, mode={:?}", isense_mA, vbat_mV, mode);
     };
 
-    loop {
-        led1.set_high().unwrap();
-        led2.set_high().unwrap();
-        let delay = Duration::from_millis(100);
-        Timer::after(delay).await;
+    let mut reg = Regulator {
+        adc, dac, isense_pin, vbat_pin
+    };
 
-        led1.set_low().unwrap();
-        led2.set_low().unwrap();
-        btn_events.recv().await;
-        i += 1;
-        let y = MODES[i % MODES.len()];
-        let y = embassy_stm32::dac::Value::Bit8(y);
-        dac.set(embassy_stm32::dac::Channel::Ch1, y).unwrap();
-        Timer::after(delay).await;
-        report(i);
-        Timer::after(delay).await;
-        report(i);
+    if false {
+        let mut i: usize = 0;
+        loop {
+            const MODES: [u8; 12] = [0, 50, 75, 90, 100, 110, 125, 140, 150, 175, 200, 255];
+            led1.set_high().unwrap();
+            led2.set_high().unwrap();
+            let delay = Duration::from_millis(100);
+            Timer::after(delay).await;
+
+            led1.set_low().unwrap();
+            led2.set_low().unwrap();
+            btn_events.recv().await;
+            i += 1;
+            let cp = MODES[i % MODES.len()];
+            let mode = Mode::ConstVoltage { setpoint_mV: cp as u32 };
+            reg.set_output_dac(cp);
+            Timer::after(delay).await;
+            report(mode, &mut reg);
+            Timer::after(delay).await;
+            report(mode, &mut reg);
+        }
+    } else {
+        let mut msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> = MSGS_CHAN.put(mpsc::Channel::new());
+
+        let (send, recv) = mpsc::split(msgs_chan);
+        spawner.spawn(feedback(recv, reg));
+        let mut i: usize = 0;
+        loop {
+            btn_events.recv().await;
+            i += 1;
+            let mode = MODES[i % MODES.len()];
+            send.send(mode).await;
+        }
     }
 }
 

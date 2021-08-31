@@ -622,6 +622,7 @@ dependencies = [
  "embassy-stm32",
  "embassy-traits",
  "embedded-hal",
+ "futures",
  "panic-probe",
 ]
 

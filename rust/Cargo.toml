@@ -24,6 +24,7 @@ defmt-error = []
 cortex-m = "^0.6"
 cortex-m-rt = "^0.6"
 cortex-m-semihosting = "^0.3"
+futures = { version = "^0.3", default_features = false }
 defmt = "0.2.0"
 defmt-rtt = "0.2.0"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
