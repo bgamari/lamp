@@ -197,7 +197,7 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
     let btn_in = exti::ExtiInput::new(btn_pin, p.EXTI8);
     let btn = BUTTON.put(Button::new(btn_in));
-    let mut btn_events = btn.run(&spawner);
+    let btn_events = btn.run(&spawner);
 
     let out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
 
@@ -232,18 +232,26 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
         Mode::from_milliamps(200),
         Mode::from_milliamps(400),
     ];
-    const MODES: &[Mode; 4] = &CURRENT_MODES;
+    const MODES: &[Mode] = &CURRENT_MODES;
 
     let reg = Regulator { adc, dac, isense_pin, vbat_pin, out_en };
     let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> = MSGS_CHAN.put(mpsc::Channel::new());
 
     let (send, recv) = mpsc::split(msgs_chan);
     unwrap!(spawner.spawn(feedback(recv, reg)));
+    ui(btn_events, send, MODES).await;
+}
+
+async fn ui(
+    mut btn_events: mpsc::Receiver<'static, CriticalSectionMutex<()>, button::ButtonEvent, 5>,
+    send: mpsc::Sender<'static, CriticalSectionMutex<()>, Mode, 1>,
+    modes: &[Mode]
+) -> ! {
     let mut i: usize = 0;
     loop {
         btn_events.recv().await;
         i += 1;
-        let mode = MODES[i % MODES.len()];
+        let mode = modes[i % modes.len()];
         let _ = send.send(mode).await;
     }
 }
