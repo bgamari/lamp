@@ -97,6 +97,10 @@ impl Mode {
         Mode::ConstVoltage { setpoint_mV: v }
     }
 
+    pub const fn from_milliamps(i: u32) -> Self {
+        Mode::ConstCurrent { setpoint_mA: i }
+    }
+
     pub const fn is_off(self) -> bool {
         match self {
             Mode::Off => true,
@@ -110,6 +114,7 @@ struct Regulator<'a> {
     dac: embassy_stm32::dac::Dac<'a, embassy_stm32::peripherals::DAC1>,
     isense_pin: embassy_stm32::peripherals::PA5,
     vbat_pin: embassy_stm32::peripherals::PB1,
+    out_en: gpio::Output<'a, embassy_stm32::peripherals::PA1>,
 }
 
 impl<'a> Regulator<'a> {
@@ -140,6 +145,7 @@ async fn feedback(
     loop {
         match state {
             Mode::Off => {
+                reg.out_en.set_low();
                 match msgs.recv().await {
                     Some(s) => {
                         state = s;
@@ -152,6 +158,7 @@ async fn feedback(
             Mode::ConstVoltage { setpoint_mV } => {
                 let cp = setpoint_mV as u8; // TODO
                 reg.set_output_dac(cp);
+                reg.out_en.set_high();
                 match msgs.recv().await {
                     Some(s) => {
                         state = s;
@@ -162,7 +169,9 @@ async fn feedback(
                 }
             },
             Mode::ConstCurrent { setpoint_mA } => {
-                let delay = Duration::from_millis(100);
+                reg.set_output_dac(0);
+                reg.out_en.set_high();
+                let delay = Duration::from_millis(10);
                 const STEP: u8 = 1;
                 loop {
                     let res = futures::select_biased! {
@@ -182,9 +191,11 @@ async fn feedback(
 
                     let isense_mA = reg.read_isense_mA();
                     if isense_mA < setpoint_mA {
-                        out_cp += STEP;
-                    } else {
+                        info!("up {}", out_cp);
                         out_cp -= STEP;
+                    } else {
+                        info!("down {}", out_cp);
+                        out_cp += STEP;
                     }
                     reg.set_output_dac(out_cp);
                 }
@@ -220,7 +231,8 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     led2.set_high().unwrap();
     //led2.set_low().unwrap();
 
-    const MODES: [Mode; 12] = [
+    const VOLTAGE_MODES: [Mode; 13] = [
+        Mode::Off,
         Mode::from_millivolts(0),
         Mode::from_millivolts(50),
         Mode::from_millivolts(75),
@@ -234,6 +246,13 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
         Mode::from_millivolts(200),
         Mode::from_millivolts(255),
     ];
+    const CURRENT_MODES: [Mode; 4] = [
+        Mode::Off,
+        Mode::from_milliamps(100),
+        Mode::from_milliamps(200),
+        Mode::from_milliamps(400),
+    ];
+    const MODES: &[Mode; 4] = &CURRENT_MODES;
 
     let mut report = |mode: Mode, reg: &mut Regulator| {
         let isense_mA = reg.read_isense_mA();
@@ -242,7 +261,7 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     };
 
     let mut reg = Regulator {
-        adc, dac, isense_pin, vbat_pin
+        adc, dac, isense_pin, vbat_pin, out_en
     };
 
     if false {
