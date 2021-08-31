@@ -45,8 +45,9 @@ async fn blink_ms<'a, T: gpio::Pin>(pin: &mut gpio::Output<'a, T>, time: Duratio
 }
 
 pub fn config() -> embassy_stm32::Config {
-    //rcc_config.enable_debug_wfe = true;
-    embassy_stm32::Config::default()
+    let mut config = embassy_stm32::Config::default();
+    config.enable_debug_during_sleep = true;
+    config
 }
 
 #[derive(defmt::Format, Clone, Copy, Debug)]
@@ -242,10 +243,11 @@ async fn ui(
 ) -> ! {
     let mut i: usize = 0;
     loop {
+        let mode = modes[i % modes.len()];
+        info!("ui mode: {:?}", mode);
+        unwrap!(send.send(mode).await);
         btn_events.recv().await;
         i += 1;
-        let mode = modes[i % modes.len()];
-        let _ = send.send(mode).await;
     }
 }
 
