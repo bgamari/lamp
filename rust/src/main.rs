@@ -44,38 +44,6 @@ async fn blink_ms<'a, T: gpio::Pin>(pin: &mut gpio::Output<'a, T>, time: Duratio
     unwrap!(pin.set_low());
 }
 
-/*
-impl<'a, DebugOutput: core::fmt::Write> Regulator<'a, DebugOutput> {
-    fn iterate(&mut self) {
-        let isense: u16 = oversample_adc::<hal::gpio::gpioa::PA5<hal::gpio::Analog>>(&mut self.adc, &mut self.isense_pin, 2);
-        //let isense: u16 = self.adc.read(&mut self.isense_pin).unwrap();
-        match self.active_mode() {
-            Mode::ConstCurrent(_setpoint) => {
-                let response: i32 = self.pi_loop.add_sample(isense);
-                let res: i32 = i32::from(self.output).saturating_sub(response);
-                if res > 0xffff {
-                    self.output = 0xffff;
-                } else if res < 0 {
-                    self.output = 0;
-                } else {
-                    self.output = res as u16;
-                }
-                self.set_duty(self.output);
-                write!(self.debug_uart, "resp {}\r\n", response).unwrap();
-            },
-            _ => (),
-        };
-
-        if true {
-            //let bat_v = self.read_batv();
-            let bat_v: u16 = self.adc.read(&mut self.vbat_pin).unwrap();
-            write!(self.debug_uart, "status vbat {} isense {} output {}\r\n", bat_v / 1000, isense, self.output).unwrap();
-            //hprintln!("status vbat={} resp={} isense={} output={}", bat_v, response, isense, self.output).unwrap();
-        }
-    }
-}
-*/
-
 pub fn config() -> embassy_stm32::Config {
     //rcc_config.enable_debug_wfe = true;
     embassy_stm32::Config::default()
