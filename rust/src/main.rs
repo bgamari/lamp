@@ -98,11 +98,13 @@ impl<'a> Regulator<'a> {
     }
 
     fn enable_output(&mut self) {
+        self.dac.enable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
         unwrap!(self.out_en.set_high());
     }
 
     fn disable_output(&mut self) {
         unwrap!(self.out_en.set_low());
+        self.dac.disable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
     }
 }
 
@@ -197,7 +199,6 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
 
     let adc = embassy_stm32::adc::Adc::new(p.ADC1, &mut Delay);
     let mut dac = embassy_stm32::dac::Dac::new(p.DAC1, p.PA4, gpio::NoPin);
-    dac.enable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
     let isense_pin = p.PA5;
     let vbat_pin = p.PB1;
 
