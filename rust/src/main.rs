@@ -46,7 +46,10 @@ async fn blink_ms<'a, T: gpio::Pin>(pin: &mut gpio::Output<'a, T>, time: Duratio
 
 pub fn config() -> embassy_stm32::Config {
     let mut config = embassy_stm32::Config::default();
-    config.enable_debug_during_sleep = true;
+    let def: embassy_stm32::rcc::Config = core::default::Default::default();
+    let rcc_config = def.ahb_pre(embassy_stm32::rcc::AHBPrescaler::Div4);
+    config.rcc = rcc_config;
+    //config.enable_debug_during_sleep = true;
     config
 }
 
