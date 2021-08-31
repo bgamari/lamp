@@ -205,9 +205,8 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let isense_pin = p.PA5;
     let vbat_pin = p.PB1;
 
-    led1.set_high().unwrap();
-    led2.set_high().unwrap();
-    //led2.set_low().unwrap();
+    blink_ms(&mut led1, Duration::from_millis(100)).await;
+    blink_ms(&mut led2, Duration::from_millis(100)).await;
 
     const VOLTAGE_MODES: [Mode; 13] = [
         Mode::Off,
