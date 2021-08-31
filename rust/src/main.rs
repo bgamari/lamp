@@ -151,6 +151,7 @@ async fn feedback(
     let mut out_cp: u8 = 100;
     let mut state: Mode = Mode::Off;
     loop {
+        info!("mode = {:?}", state);
         match state {
             Mode::Off => {
                 reg.disable_output();
@@ -183,6 +184,7 @@ async fn feedback(
                 reg.enable_output();
                 let delay = Duration::from_millis(10);
                 const STEP: u8 = 1;
+                const I_TOL: u32 = 10; //^ milliamps
                 loop {
                     let res = futures::select_biased! {
                         s = msgs.recv().fuse() => Some(s),
@@ -200,10 +202,11 @@ async fn feedback(
                     }
 
                     let isense_mA = reg.read_isense_mA();
-                    if isense_mA < setpoint_mA {
+                    info!("Isense {} mA", isense_mA);
+                    if isense_mA < setpoint_mA - I_TOL {
                         info!("up {}", out_cp);
                         out_cp -= STEP;
-                    } else {
+                    } else if isense_mA > setpoint_mA + I_TOL {
                         info!("down {}", out_cp);
                         out_cp += STEP;
                     }
@@ -263,50 +266,17 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     ];
     const MODES: &[Mode; 4] = &CURRENT_MODES;
 
-    let report = |mode: Mode, reg: &mut Regulator| {
-        let isense_mA = reg.read_isense_mA();
-        let vbat_mV = reg.read_vbat_mV();
-        info!("hi Isense={} mA, Vbat={}, mode={:?}", isense_mA, vbat_mV, mode);
-    };
+    let reg = Regulator { adc, dac, isense_pin, vbat_pin, out_en };
+    let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> = MSGS_CHAN.put(mpsc::Channel::new());
 
-    let mut reg = Regulator {
-        adc, dac, isense_pin, vbat_pin, out_en
-    };
-
-    if false {
-        let mut i: usize = 0;
-        reg.enable_output();
-        loop {
-            const MODES: [u8; 12] = [0, 50, 75, 90, 100, 110, 125, 140, 150, 175, 200, 255];
-            led1.set_high().unwrap();
-            led2.set_high().unwrap();
-            let delay = Duration::from_millis(100);
-            Timer::after(delay).await;
-
-            led1.set_low().unwrap();
-            led2.set_low().unwrap();
-            btn_events.recv().await;
-            i += 1;
-            let cp = MODES[i % MODES.len()];
-            let mode = Mode::ConstVoltage { setpoint_mV: cp as u32 };
-            reg.set_output_dac(cp);
-            Timer::after(delay).await;
-            report(mode, &mut reg);
-            Timer::after(delay).await;
-            report(mode, &mut reg);
-        }
-    } else {
-        let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> = MSGS_CHAN.put(mpsc::Channel::new());
-
-        let (send, recv) = mpsc::split(msgs_chan);
-        unwrap!(spawner.spawn(feedback(recv, reg)));
-        let mut i: usize = 0;
-        loop {
-            btn_events.recv().await;
-            i += 1;
-            let mode = MODES[i % MODES.len()];
-            let _ = send.send(mode).await;
-        }
+    let (send, recv) = mpsc::split(msgs_chan);
+    unwrap!(spawner.spawn(feedback(recv, reg)));
+    let mut i: usize = 0;
+    loop {
+        btn_events.recv().await;
+        i += 1;
+        let mode = MODES[i % MODES.len()];
+        let _ = send.send(mode).await;
     }
 }
 
