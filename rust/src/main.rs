@@ -45,9 +45,13 @@ async fn blink_ms<'a, T: gpio::Pin>(pin: &mut gpio::Output<'a, T>, time: Duratio
 }
 
 pub fn config() -> embassy_stm32::Config {
+    use embassy_stm32::rcc;
     let mut config = embassy_stm32::Config::default();
-    let def: embassy_stm32::rcc::Config = core::default::Default::default();
-    let rcc_config = def.ahb_pre(embassy_stm32::rcc::AHBPrescaler::Div4);
+    let def: rcc::Config = core::default::Default::default();
+    let rcc_config = def
+        .clock_src(rcc::ClockSrc::HSI16(rcc::HSI16Prescaler::Div8))
+        .low_power_run(true)
+        ;
     config.rcc = rcc_config;
     //config.enable_debug_during_sleep = true;
     config
@@ -169,7 +173,7 @@ async fn feedback(
                     }
 
                     let isense_mA = reg.read_isense_mA();
-                    info!("Isense {} mA", isense_mA);
+                    info!("Isense {} mA / {} mA", isense_mA, setpoint_mA);
                     if isense_mA < setpoint_mA - I_TOL {
                         info!("up {}", out_cp);
                         out_cp -= STEP;
@@ -191,12 +195,13 @@ static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, 
 async fn main(spawner: Spawner, p: Peripherals) -> ! {
     info!("Hello World!");
 
-    let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
-    let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
     let btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
     let btn_in = exti::ExtiInput::new(btn_pin, p.EXTI8);
     let btn = BUTTON.put(Button::new(btn_in));
     let btn_events = btn.run(&spawner);
+
+    let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
+    let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
 
     let out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
 
