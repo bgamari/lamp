@@ -191,6 +191,30 @@ async fn feedback(
 static MSGS_CHAN: Forever<mpsc::Channel<embassy::util::CriticalSectionMutex<()>, Mode, 1>> = Forever::new();
 static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, embassy_stm32::peripherals::PA8>> = Forever::new();
 
+const VOLTAGE_MODES: [Mode; 13] = [
+    Mode::Off,
+    Mode::from_millivolts(0),
+    Mode::from_millivolts(50),
+    Mode::from_millivolts(75),
+    Mode::from_millivolts(90),
+    Mode::from_millivolts(100),
+    Mode::from_millivolts(110),
+    Mode::from_millivolts(125),
+    Mode::from_millivolts(140),
+    Mode::from_millivolts(150),
+    Mode::from_millivolts(175),
+    Mode::from_millivolts(200),
+    Mode::from_millivolts(255),
+];
+const CURRENT_MODES: [Mode; 4] = [
+    Mode::Off,
+    Mode::from_milliamps(100),
+    Mode::from_milliamps(200),
+    Mode::from_milliamps(400),
+];
+const MODES: &[Mode] = &CURRENT_MODES;
+
+
 #[embassy::main(config="config()")]
 async fn main(spawner: Spawner, p: Peripherals) -> ! {
     info!("Hello World!");
@@ -213,31 +237,9 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     blink_ms(&mut led1, Duration::from_millis(100)).await;
     blink_ms(&mut led2, Duration::from_millis(100)).await;
 
-    const VOLTAGE_MODES: [Mode; 13] = [
-        Mode::Off,
-        Mode::from_millivolts(0),
-        Mode::from_millivolts(50),
-        Mode::from_millivolts(75),
-        Mode::from_millivolts(90),
-        Mode::from_millivolts(100),
-        Mode::from_millivolts(110),
-        Mode::from_millivolts(125),
-        Mode::from_millivolts(140),
-        Mode::from_millivolts(150),
-        Mode::from_millivolts(175),
-        Mode::from_millivolts(200),
-        Mode::from_millivolts(255),
-    ];
-    const CURRENT_MODES: [Mode; 4] = [
-        Mode::Off,
-        Mode::from_milliamps(100),
-        Mode::from_milliamps(200),
-        Mode::from_milliamps(400),
-    ];
-    const MODES: &[Mode] = &CURRENT_MODES;
-
     let reg = Regulator { adc, dac, isense_pin, vbat_pin, out_en };
-    let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> = MSGS_CHAN.put(mpsc::Channel::new());
+    let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> =
+        MSGS_CHAN.put(mpsc::Channel::new());
 
     let (send, recv) = mpsc::split(msgs_chan);
     unwrap!(spawner.spawn(feedback(recv, reg)));
