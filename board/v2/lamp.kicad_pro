@@ -407,8 +407,8 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
-      "vrml": ""
+      "step": "lamp.step",
+      "vrml": "lamp.wrl"
     },
     "page_layout_descr_file": ""
   },
