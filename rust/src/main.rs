@@ -162,13 +162,13 @@ async fn feedback(
             Mode::ConstCurrent { setpoint_mA } => {
                 reg.set_output_dac(out_cp);
                 reg.enable_output();
-                let delay = Duration::from_millis(10);
+                const FB_DELAY: Duration = Duration::from_millis(50);
                 const STEP: u8 = 1;
                 const I_TOL: u32 = 10; //^ milliamps
                 loop {
                     let res = futures::select_biased! {
                         s = msgs.recv().fuse() => Some(s),
-                        () = Timer::after(delay).fuse() => None,
+                        () = Timer::after(FB_DELAY).fuse() => None,
                     };
                     match res {
                         Some(None) => {
