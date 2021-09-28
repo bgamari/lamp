@@ -92,7 +92,7 @@ struct Regulator<'a> {
 impl<'a> Regulator<'a> {
     fn read_isense_mA(&mut self) -> u32 {
         let x = self.adc.read(&mut self.isense_pin);
-        let isense_mA = self.adc.to_millivolts(x) as u32 * 1000 / 1010;
+        let isense_mA = self.adc.to_millivolts(x) as u32 * 1000 / 1500;
         isense_mA
     }
 
@@ -122,7 +122,7 @@ impl<'a> Regulator<'a> {
 async fn feedback(
     mut msgs: mpsc::Receiver<'static, CriticalSectionMutex<()>, Mode, 1>,
     mut reg: Regulator<'static>) -> () {
-    let mut out_cp: u8 = 100;
+    let mut out_cp: u8 = 128;
     let mut state: Mode = Mode::Off;
     loop {
         let vbat_mV = reg.read_vbat_mV();
