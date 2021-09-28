@@ -204,6 +204,10 @@ async fn feedback(
 
 static MSGS_CHAN: Forever<mpsc::Channel<embassy::util::CriticalSectionMutex<()>, Mode, 1>> = Forever::new();
 static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, embassy_stm32::peripherals::PA8>> = Forever::new();
+static LED1: Forever<Led1<'static>> = Forever::new();
+
+type Led1<'a> = gpio::Output<'a, embassy_stm32::peripherals::PA6>;
+type Led2<'a> = gpio::Output<'a, embassy_stm32::peripherals::PA7>;
 
 const VOLTAGE_MODES: [Mode; 13] = [
     Mode::Off,
@@ -238,8 +242,8 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let btn = BUTTON.put(Button::new(btn_in));
     let btn_events = btn.run(&spawner);
 
-    let mut led1 = gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low);
-    let mut led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
+    let mut led1: &'static mut Led1 = LED1.put(gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low));
+    let mut led2: Led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
 
     let out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
 
@@ -257,18 +261,20 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
 
     let (send, recv) = mpsc::split(msgs_chan);
     unwrap!(spawner.spawn(feedback(recv, reg)));
-    ui(btn_events, send, MODES).await;
+    ui(btn_events, send, led1, MODES).await;
 }
 
 async fn ui(
     mut btn_events: mpsc::Receiver<'static, CriticalSectionMutex<()>, button::ButtonEvent, 5>,
     send: mpsc::Sender<'static, CriticalSectionMutex<()>, Mode, 1>,
+    led1: &'static mut Led1<'static>,
     modes: &[Mode]
 ) -> ! {
     let mut i: usize = 0;
     loop {
         let mode = modes[i % modes.len()];
         info!("ui mode: {:?}", mode);
+        blink_ms(led1, Duration::from_millis(50)).await;
         unwrap!(send.send(mode).await);
         btn_events.recv().await;
         i += 1;
