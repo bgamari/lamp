@@ -24,6 +24,9 @@ use embedded_hal::digital::v2::OutputPin;
 mod button;
 use crate::button::{Button};
 
+const MIN_BAT_mV: u32 = 3_200;
+const MAX_BAT_mV: u32 = 8_500;
+
 fn oversample_adc<T: embassy_stm32::adc::Instance>(
     adc: &mut embassy_stm32::adc::Adc<T>,
     channel: &mut impl embassy_stm32::adc::AdcPin<T>,
@@ -122,6 +125,12 @@ async fn feedback(
     let mut out_cp: u8 = 100;
     let mut state: Mode = Mode::Off;
     loop {
+        let vbat_mV = reg.read_vbat_mV();
+        if vbat_mV < MIN_BAT_mV || vbat_mV > MAX_BAT_mV {
+            state = Mode::Off;
+            info!("Power off due to V_bat out-of-range: {}", vbat_mV);
+        }
+
         info!("mode = {:?}", state);
         match state {
             Mode::Off => {
@@ -182,6 +191,11 @@ async fn feedback(
                         out_cp += STEP;
                     }
                     reg.set_output_dac(out_cp);
+
+                    let vbat_mV = reg.read_vbat_mV();
+                    if vbat_mV < MIN_BAT_mV || vbat_mV > MAX_BAT_mV {
+                        break;
+                    }
                 }
             },
         }
