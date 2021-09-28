@@ -5,15 +5,17 @@
 #![feature(never_type)]
 #![feature(async_closure)]
 
-use panic_probe as _;
+use defmt::{info, unwrap};
 use defmt_rtt as _;
-use defmt::{unwrap, info};
+use panic_probe as _;
 
-use embassy::util::{mpsc, CriticalSectionMutex};
-use embassy::util::Forever;
+use embassy::blocking_mutex::kind;
+use embassy::blocking_mutex::CriticalSectionMutex;
+use embassy::channel::mpsc;
 use embassy::executor::Spawner;
 use embassy::time::{Delay, Duration, Timer};
-use embassy_stm32::{gpio, exti, Peripherals};
+use embassy::util::Forever;
+use embassy_stm32::{exti, gpio, Peripherals};
 
 use futures::FutureExt;
 
@@ -22,7 +24,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use embedded_hal::digital::v2::OutputPin;
 
 mod button;
-use crate::button::{Button};
+use crate::button::Button;
 
 const MIN_BAT_mV: u32 = 3_200;
 const MAX_BAT_mV: u32 = 8_500;
@@ -30,9 +32,8 @@ const MAX_BAT_mV: u32 = 8_500;
 fn oversample_adc<T: embassy_stm32::adc::Instance>(
     adc: &mut embassy_stm32::adc::Adc<T>,
     channel: &mut impl embassy_stm32::adc::AdcPin<T>,
-    samples: u8
-    ) -> u16
-{
+    samples: u8,
+) -> u16 {
     let mut accum: u32 = 0;
     for _i in 0..samples {
         let x: u16 = adc.read(channel);
@@ -53,8 +54,7 @@ pub fn config() -> embassy_stm32::Config {
     let def: rcc::Config = core::default::Default::default();
     let rcc_config = def
         .clock_src(rcc::ClockSrc::HSI16(rcc::HSI16Prescaler::Div8))
-        .low_power_run(true)
-        ;
+        .low_power_run(true);
     config.rcc = rcc_config;
     //config.enable_debug_during_sleep = true;
     config
@@ -63,12 +63,8 @@ pub fn config() -> embassy_stm32::Config {
 #[derive(defmt::Format, Clone, Copy, Debug)]
 enum Mode {
     Off,
-    ConstVoltage {
-        setpoint_mV: u32,
-    },
-    ConstCurrent {
-        setpoint_mA: u32,
-    },
+    ConstVoltage { setpoint_mV: u32 },
+    ConstCurrent { setpoint_mA: u32 },
 }
 
 impl Mode {
@@ -108,20 +104,25 @@ impl<'a> Regulator<'a> {
     }
 
     fn enable_output(&mut self) {
-        self.dac.enable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
+        self.dac
+            .enable_channel(embassy_stm32::dac::Channel::Ch1)
+            .unwrap();
         unwrap!(self.out_en.set_high());
     }
 
     fn disable_output(&mut self) {
         unwrap!(self.out_en.set_low());
-        self.dac.disable_channel(embassy_stm32::dac::Channel::Ch1).unwrap();
+        self.dac
+            .disable_channel(embassy_stm32::dac::Channel::Ch1)
+            .unwrap();
     }
 }
 
 #[embassy::task]
 async fn feedback(
-    mut msgs: mpsc::Receiver<'static, CriticalSectionMutex<()>, Mode, 1>,
-    mut reg: Regulator<'static>) -> () {
+    mut msgs: mpsc::Receiver<'static, kind::CriticalSection, Mode, 1>,
+    mut reg: Regulator<'static>,
+) -> () {
     let mut out_cp: u8 = 128;
     let mut state: Mode = Mode::Off;
     loop {
@@ -139,12 +140,12 @@ async fn feedback(
                 match msgs.recv().await {
                     Some(s) => {
                         state = s;
-                    },
+                    }
                     None => {
                         return;
-                    },
+                    }
                 }
-            },
+            }
             Mode::ConstVoltage { setpoint_mV } => {
                 let cp = setpoint_mV as u8; // TODO
                 out_cp = cp;
@@ -153,12 +154,12 @@ async fn feedback(
                 match msgs.recv().await {
                     Some(s) => {
                         state = s;
-                    },
+                    }
                     None => {
                         return;
-                    },
+                    }
                 }
-            },
+            }
             Mode::ConstCurrent { setpoint_mA } => {
                 reg.set_output_dac(out_cp);
                 reg.enable_output();
@@ -173,11 +174,11 @@ async fn feedback(
                     match res {
                         Some(None) => {
                             return;
-                        },
+                        }
                         Some(Some(new_state)) => {
                             state = new_state;
                             break;
-                        },
+                        }
                         None => (),
                     }
 
@@ -197,13 +198,14 @@ async fn feedback(
                         break;
                     }
                 }
-            },
+            }
         }
     }
 }
 
-static MSGS_CHAN: Forever<mpsc::Channel<embassy::util::CriticalSectionMutex<()>, Mode, 1>> = Forever::new();
-static BUTTON: Forever<Button<'static, embassy::util::CriticalSectionMutex<()>, embassy_stm32::peripherals::PA8>> = Forever::new();
+static MSGS_CHAN: Forever<mpsc::Channel<kind::CriticalSection, Mode, 1>> = Forever::new();
+static BUTTON: Forever<Button<'static, kind::CriticalSection, embassy_stm32::peripherals::PA8>> =
+    Forever::new();
 static LED1: Forever<Led1<'static>> = Forever::new();
 
 type Led1<'a> = gpio::Output<'a, embassy_stm32::peripherals::PA6>;
@@ -232,8 +234,7 @@ const CURRENT_MODES: [Mode; 4] = [
 ];
 const MODES: &[Mode] = &CURRENT_MODES;
 
-
-#[embassy::main(config="config()")]
+#[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) -> ! {
     info!("Hello World!");
 
@@ -242,7 +243,8 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     let btn = BUTTON.put(Button::new(btn_in));
     let btn_events = btn.run(&spawner);
 
-    let mut led1: &'static mut Led1 = LED1.put(gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low));
+    let mut led1: &'static mut Led1 =
+        LED1.put(gpio::Output::new(p.PA6, gpio::Level::Low, gpio::Speed::Low));
     let mut led2: Led2 = gpio::Output::new(p.PA7, gpio::Level::Low, gpio::Speed::Low);
 
     let out_en = gpio::Output::new(p.PA1, gpio::Level::Low, gpio::Speed::Low);
@@ -255,8 +257,14 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
     blink_ms(&mut led1, Duration::from_millis(100)).await;
     blink_ms(&mut led2, Duration::from_millis(100)).await;
 
-    let reg = Regulator { adc, dac, isense_pin, vbat_pin, out_en };
-    let msgs_chan: &'static mut mpsc::Channel<CriticalSectionMutex<()>, Mode, 1> =
+    let reg = Regulator {
+        adc,
+        dac,
+        isense_pin,
+        vbat_pin,
+        out_en,
+    };
+    let msgs_chan: &'static mut mpsc::Channel<kind::CriticalSection, Mode, 1> =
         MSGS_CHAN.put(mpsc::Channel::new());
 
     let (send, recv) = mpsc::split(msgs_chan);
@@ -265,10 +273,10 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
 }
 
 async fn ui(
-    mut btn_events: mpsc::Receiver<'static, CriticalSectionMutex<()>, button::ButtonEvent, 5>,
-    send: mpsc::Sender<'static, CriticalSectionMutex<()>, Mode, 1>,
+    mut btn_events: mpsc::Receiver<'static, kind::CriticalSection, button::ButtonEvent, 5>,
+    send: mpsc::Sender<'static, kind::CriticalSection, Mode, 1>,
     led1: &'static mut Led1<'static>,
-    modes: &[Mode]
+    modes: &[Mode],
 ) -> ! {
     let mut i: usize = 0;
     loop {
