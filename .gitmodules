@@ -5,5 +5,5 @@
 	path = kicad-symbols
 	url = https://github.com/KiCad/kicad-symbols.git
 [submodule "rust/embassy"]
-	path = rust/embassy
+	path = firmware/embassy
 	url = https://github.com/embassy-rs/embassy
