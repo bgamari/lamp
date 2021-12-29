@@ -211,10 +211,10 @@ async fn feedback(
 }
 
 static MSGS_CHAN: Forever<mpsc::Channel<kind::CriticalSection, Mode, 1>> = Forever::new();
-static BUTTON: Forever<Button<'static, kind::CriticalSection, embassy_stm32::peripherals::PA8>> =
-    Forever::new();
+static BUTTON: Forever<Btn1> = Forever::new();
 static LED1: Forever<Led1<'static>> = Forever::new();
 
+type Btn1<'a> = Button<'static, kind::CriticalSection, embassy_stm32::peripherals::PA8>;
 type Led1<'a> = gpio::Output<'a, embassy_stm32::peripherals::PA6>;
 type Led2<'a> = gpio::Output<'a, embassy_stm32::peripherals::PA7>;
 
