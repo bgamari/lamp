@@ -103,14 +103,16 @@ impl<'a> Regulator<'a> {
         self.dac.set(embassy_stm32::dac::Channel::Ch1, y).unwrap();
     }
 
-    fn enable_output(&mut self) {
+    async fn enable_output(&mut self) {
         self.dac
             .enable_channel(embassy_stm32::dac::Channel::Ch1)
             .unwrap();
+        // Allow DAC to settle
+        embassy::time::Timer::after(embassy::time::Duration::from_micros(10)).await;
         unwrap!(self.out_en.set_high());
     }
 
-    fn disable_output(&mut self) {
+    async fn disable_output(&mut self) {
         unwrap!(self.out_en.set_low());
         self.dac
             .disable_channel(embassy_stm32::dac::Channel::Ch1)
@@ -124,7 +126,8 @@ async fn feedback(
     mut reg: Regulator<'static>,
 ) -> () {
     let mut task = active_state::new_task();
-    let mut out_cp: u8 = 128;
+    const INITIAL_CODEPOINT: u8 = 128;
+    let mut out_cp: u8 = INITIAL_CODEPOINT;
     let mut state: Mode = Mode::Off;
     task.active();
     loop {
@@ -137,13 +140,15 @@ async fn feedback(
         info!("mode = {:?}", state);
         match state {
             Mode::Off => {
-                reg.disable_output();
-                out_cp = 100;
+                reg.disable_output().await;
+                out_cp = INITIAL_CODEPOINT;
                 task.inactive();
                 match msgs.recv().await {
                     Some(s) => {
                         task.active();
                         state = s;
+                        reg.set_output_dac(out_cp);
+                        reg.enable_output().await;
                     }
                     None => {
                         return;
@@ -154,7 +159,6 @@ async fn feedback(
                 let cp = setpoint_mV as u8; // TODO
                 out_cp = cp;
                 reg.set_output_dac(cp);
-                reg.enable_output();
                 match msgs.recv().await {
                     Some(s) => {
                         state = s;
@@ -166,7 +170,6 @@ async fn feedback(
             }
             Mode::ConstCurrent { setpoint_mA } => {
                 reg.set_output_dac(out_cp);
-                reg.enable_output();
                 const FB_DELAY: Duration = Duration::from_millis(50);
                 const STEP: u8 = 1;
                 const I_TOL: u32 = 10; //^ milliamps
