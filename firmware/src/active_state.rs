@@ -2,7 +2,7 @@ use core::cell::{RefCell};
 use embassy::channel::signal::Signal;
 use embassy::blocking_mutex::{CriticalSectionMutex, Mutex};
 use embassy::time::Duration;
-use defmt::{info};
+use defmt::debug;
 
 pub struct Task {
     active: bool,
@@ -84,7 +84,6 @@ impl ActiveState {
 
     fn is_active(&self) -> bool {
         let count = self.inner.lock(|inner| inner.borrow().active_count);
-        info!("active count: {}", count);
         count > 0
     }
 
@@ -112,30 +111,30 @@ impl ActiveState {
         loop {
             embassy::time::Timer::after(TRY_SUSPEND_TIMEOUT).await;
             if ! s.is_active() {
-                info!("suspending");
+                debug!("suspending");
                 embassy::time::Timer::after(embassy::time::Duration::from_millis(100)).await;
                 suspend().await;
             } else {
-                info!("active");
+                debug!("active");
             }
         }
     }
 }
 
-const DO_SUSPEND: bool = true;
+const DO_SUSPEND: bool = ! cfg!(feature="no_sleep");
 
 pub async fn suspend() {
     unsafe {
-        embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x1));
-        info!("suspend");
+        debug!("suspend");
         if DO_SUSPEND {
+            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
             let mut cp = cortex_m::peripheral::Peripherals::steal();
             cp.SCB.set_sleepdeep();
             cortex_m::asm::wfi();
             cp.SCB.clear_sleepdeep();
+            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
         }
-        info!("resume");
+        debug!("resume");
     }
 }
-
 

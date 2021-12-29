@@ -56,7 +56,7 @@ pub fn config() -> embassy_stm32::Config {
         .clock_src(rcc::ClockSrc::HSI16(rcc::HSI16Prescaler::Div8))
         .low_power_run(true);
     config.rcc = rcc_config;
-    //config.enable_debug_during_sleep = true;
+    config.enable_debug_during_sleep = cfg!(feature = "debug");
     config
 }
 

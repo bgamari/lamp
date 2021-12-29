@@ -6,7 +6,7 @@ edition = "2018"
 resolver = "2"
 
 [features]
-nosleep = []
+no_sleep = []
 debug = []
 
 [dependencies]
