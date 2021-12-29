@@ -52,9 +52,9 @@ pub fn config() -> embassy_stm32::Config {
     use embassy_stm32::rcc;
     let mut config = embassy_stm32::Config::default();
     let def: rcc::Config = core::default::Default::default();
+    // N.B. The ADC is unusable in low-power run mode
     let rcc_config = def
-        .clock_src(rcc::ClockSrc::HSI16(rcc::HSI16Prescaler::Div8))
-        .low_power_run(true);
+        .clock_src(rcc::ClockSrc::HSI16(rcc::HSI16Prescaler::Div8));
     config.rcc = rcc_config;
     config.enable_debug_during_sleep = cfg!(feature = "debug");
     config
