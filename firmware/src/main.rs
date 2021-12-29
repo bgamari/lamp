@@ -241,9 +241,24 @@ const CURRENT_MODES: [Mode; 4] = [
 ];
 const MODES: &[Mode] = &CURRENT_MODES;
 
+fn disable_unused_peripherals() {
+    unsafe {
+        embassy_stm32::pac::RCC.iopenr().modify(|w| {
+            w.set_gpiocen(false);
+            w.set_gpioden(false);
+        });
+        embassy_stm32::pac::RCC.ahbenr().modify(|w| {
+            w.set_dmaen(false);
+        });
+    }
+}
+
 #[embassy::main(config = "config()")]
 async fn main(spawner: Spawner, p: Peripherals) -> ! {
     info!("Hello World!");
+    embassy::time::Timer::after(embassy::time::Duration::from_secs(1)).await;
+
+    disable_unused_peripherals();
 
     let btn_pin = gpio::Input::new(p.PA8, gpio::Pull::Up);
     let btn_in = exti::ExtiInput::new(btn_pin, p.EXTI8);
