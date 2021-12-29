@@ -118,23 +118,6 @@ impl<'a> Regulator<'a> {
     }
 }
 
-/// Enter sleep state, disabling core clocks.
-async fn suspend() {
-    const DO_SUSPEND: bool = true;
-    unsafe {
-        info!("suspend");
-        if DO_SUSPEND {
-            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x1));
-            let mut cp = cortex_m::peripheral::Peripherals::steal();
-            cp.SCB.set_sleepdeep();
-            cortex_m::asm::wfi();
-            cp.SCB.clear_sleepdeep();
-            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
-        }
-        info!("resume");
-    }
-}
-
 #[embassy::task]
 async fn feedback(
     mut msgs: mpsc::Receiver<'static, kind::CriticalSection, Mode, 1>,
