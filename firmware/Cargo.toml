@@ -25,11 +25,11 @@ cortex-m = "^0.6"
 cortex-m-rt = "^0.6"
 cortex-m-semihosting = "^0.3"
 futures = { version = "^0.3", default_features = false }
-defmt = "0.2.0"
-defmt-rtt = "0.2.0"
-panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+defmt = "^0.3"
+defmt-rtt = "^0.3"
+panic-probe = { version = "^0.3", features = ["print-defmt"] }
 embassy = { path = "./embassy/embassy", features = [ "defmt", "time" ] }
-embassy-stm32 = { path = "./embassy/embassy-stm32", features = [ "stm32g071c8", "defmt", "defmt-info", "unstable-pac", "time-driver-tim2" ] }
+embassy-stm32 = { path = "./embassy/embassy-stm32", features = [ "stm32g071c8", "defmt", "unstable-pac", "time-driver-tim2" ] }
 embassy-hal-common = { path = "./embassy/embassy-hal-common" }
 embassy-traits = { path = "./embassy/embassy-traits", features = ["defmt"] }
  

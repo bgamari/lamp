@@ -16,7 +16,7 @@ in with nixpkgs;
 let
   rustChannel = rustChannelOfTargets
     "nightly"
-    "2021-08-18"
+    "2021-12-27"
     [
       "x86_64-unknown-linux-gnu"
       "thumbv6m-none-eabi"
