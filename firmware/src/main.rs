@@ -10,7 +10,6 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy::blocking_mutex::kind;
-use embassy::blocking_mutex::CriticalSectionMutex;
 use embassy::channel::mpsc;
 use embassy::executor::Spawner;
 use embassy::time::{Delay, Duration, Timer};
@@ -24,6 +23,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use embedded_hal::digital::v2::OutputPin;
 
 mod button;
+mod active_state;
 use crate::button::Button;
 
 const MIN_BAT_mV: u32 = 3_200;
@@ -118,13 +118,32 @@ impl<'a> Regulator<'a> {
     }
 }
 
+/// Enter sleep state, disabling core clocks.
+async fn suspend() {
+    const DO_SUSPEND: bool = true;
+    unsafe {
+        info!("suspend");
+        if DO_SUSPEND {
+            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x1));
+            let mut cp = cortex_m::peripheral::Peripherals::steal();
+            cp.SCB.set_sleepdeep();
+            cortex_m::asm::wfi();
+            cp.SCB.clear_sleepdeep();
+            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
+        }
+        info!("resume");
+    }
+}
+
 #[embassy::task]
 async fn feedback(
     mut msgs: mpsc::Receiver<'static, kind::CriticalSection, Mode, 1>,
     mut reg: Regulator<'static>,
 ) -> () {
+    let mut task = active_state::new_task();
     let mut out_cp: u8 = 128;
     let mut state: Mode = Mode::Off;
+    task.active();
     loop {
         let vbat_mV = reg.read_vbat_mV();
         if vbat_mV < MIN_BAT_mV || vbat_mV > MAX_BAT_mV {
@@ -137,8 +156,10 @@ async fn feedback(
             Mode::Off => {
                 reg.disable_output();
                 out_cp = 100;
+                task.inactive();
                 match msgs.recv().await {
                     Some(s) => {
+                        task.active();
                         state = s;
                     }
                     None => {
@@ -269,6 +290,7 @@ async fn main(spawner: Spawner, p: Peripherals) -> ! {
 
     let (send, recv) = mpsc::split(msgs_chan);
     unwrap!(spawner.spawn(feedback(recv, reg)));
+    active_state::init(&spawner);
     ui(btn_events, send, led1, MODES).await;
 }
 
