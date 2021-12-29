@@ -1,5 +1,5 @@
 [target.thumbv6m-none-eabi]
-runner = "probe-run --chip STM32G071G8"
+runner = "probe-run --chip STM32G071G8Ux"
 rustflags = [
   "-C", "link-arg=-Tlink.x",
   "-C", "link-arg=-Tdefmt.x", # <- ADD this one
