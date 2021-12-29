@@ -16,13 +16,14 @@ Started with STM32F030F4P6
  * Move to STM32L051K MCU (QFN-32)
  * Drop thermal cut-out
 
-# May 26 (v4)
+# May 26 2021 (v4)
 
  * Move to STM32G071 MCU (QFN-28)
  * Move to LMR23625 Buck converter
  * Add reverse polarity protection
 
-# July 30 (v5)
+# July 30 2021 (v5)
 
  * Change TLV333 to use correct SC-70 package
  * Fix values of Buck converter's bootstrap and bypass capacitors to 2.2uF
+ * Connect JTAG RESET line

@@ -7,7 +7,7 @@
   (title_block
     (title "LED driver")
     (date "2021-07-30")
-    (rev "5")
+    (rev "${REVISION}")
     (company "Ben Gamari")
   )
 
@@ -2752,6 +2752,7 @@
     )
   )
 
+
   (junction (at -50.8 35.56) (diameter 0.9144) (color 0 0 0 0))
   (junction (at -40.64 46.355) (diameter 0.9144) (color 0 0 0 0))
   (junction (at -26.67 35.56) (diameter 0.9144) (color 0 0 0 0))
@@ -3509,7 +3510,7 @@
     (effects (font (size 1.27 1.27)) (justify left bottom))
     (uuid 3b037e76-e6ff-45f5-a526-d381ec7e3e60)
   )
-  (label "RESET" (at 98.425 136.525 180)
+  (label "~{RESET}" (at 98.425 136.525 180)
     (effects (font (size 1.27 1.27)) (justify right bottom))
     (uuid 2b5f0bf6-eac4-4a3b-b83c-5bcd0254b21e)
   )
