@@ -127,12 +127,14 @@ pub async fn suspend() {
     unsafe {
         debug!("suspend");
         if DO_SUSPEND {
-            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
+            embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x1));
             let mut cp = cortex_m::peripheral::Peripherals::steal();
             cp.SCB.set_sleepdeep();
             cortex_m::asm::wfi();
             cp.SCB.clear_sleepdeep();
             embassy_stm32::pac::PWR.cr1().modify(|w| w.set_lpms(0x0));
+        } else {
+            cortex_m::asm::wfi();
         }
         debug!("resume");
     }
