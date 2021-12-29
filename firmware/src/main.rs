@@ -120,6 +120,15 @@ impl<'a> Regulator<'a> {
     }
 }
 
+fn set_adc_enabled(b: bool) {
+    unsafe {
+        embassy_stm32::pac::ADC1.cr().modify(|w| {
+            w.set_aden(false);
+            w.set_advregen(false);
+        });
+    }
+}
+
 #[embassy::task]
 async fn feedback(
     mut msgs: mpsc::Receiver<'static, kind::CriticalSection, Mode, 1>,
@@ -142,11 +151,14 @@ async fn feedback(
             Mode::Off => {
                 reg.disable_output().await;
                 out_cp = INITIAL_CODEPOINT;
+                set_adc_enabled(false);
                 task.inactive();
+
                 match msgs.recv().await {
                     Some(s) => {
                         task.active();
                         state = s;
+                        set_adc_enabled(true);
                         reg.set_output_dac(out_cp);
                         reg.enable_output().await;
                     }
