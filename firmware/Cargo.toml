@@ -8,17 +8,6 @@ resolver = "2"
 [features]
 nosleep = []
 debug = []
-# set logging levels here
-default = [
-  "defmt-default",
-  # "dependency-a/defmt-trace",
-]
-defmt-default = []
-defmt-trace = []
-defmt-debug = []
-defmt-info = []
-defmt-warn = []
-defmt-error = []
 
 [dependencies]
 cortex-m = "^0.6"
