@@ -110,12 +110,10 @@ impl ActiveState {
         const TRY_SUSPEND_TIMEOUT: Duration = Duration::from_secs(5);
         loop {
             embassy::time::Timer::after(TRY_SUSPEND_TIMEOUT).await;
-            if ! s.is_active() {
+            while ! s.is_active() {
+                embassy::time::Timer::after(Duration::from_millis(10)).await;
                 debug!("suspending");
-                embassy::time::Timer::after(embassy::time::Duration::from_millis(100)).await;
                 suspend().await;
-            } else {
-                debug!("active");
             }
         }
     }
