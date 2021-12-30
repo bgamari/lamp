@@ -4,6 +4,7 @@ use embassy::channel::mpsc;
 use embassy::executor::Spawner;
 use embassy::time::{Duration, Instant};
 use embassy_stm32::{exti, gpio};
+use crate::active_state;
 
 pub enum ButtonEvent {
     ShortPress,
@@ -52,9 +53,12 @@ where
     M: MutexKind,
 {
     use embassy_traits::gpio::{WaitForFallingEdge, WaitForRisingEdge};
+    let mut active_task = active_state::new_task();
 
     loop {
+        active_task.inactive();
         btn.wait_for_falling_edge().await;
+        active_task.active();
         let t0 = Instant::now();
 
         btn.wait_for_rising_edge().await;
