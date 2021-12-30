@@ -121,6 +121,7 @@ impl ActiveState {
 
 const DO_SUSPEND: bool = ! cfg!(feature="no_sleep");
 
+/// Enter sleep state, disable core clocks.
 pub fn suspend() {
     unsafe {
         debug!("suspend");
