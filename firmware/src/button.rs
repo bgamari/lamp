@@ -6,6 +6,10 @@ use embassy::time::{Duration, Instant};
 use embassy_stm32::{exti, gpio};
 use crate::active_state;
 
+const MIN_PRESS_TIME: Duration = Duration::from_millis(10);
+const MAX_SHORT_PRESS_TIME: Duration = Duration::from_millis(1000);
+const MAX_LONG_PRESS_TIME: Duration = Duration::from_millis(4000);
+
 pub enum ButtonEvent {
     ShortPress,
     LongPress,
@@ -65,9 +69,6 @@ where
         let t1 = Instant::now();
 
         let dt = t1 - t0;
-        const MIN_PRESS_TIME: Duration = Duration::from_millis(3);
-        const MAX_SHORT_PRESS_TIME: Duration = Duration::from_millis(1000);
-        const MAX_LONG_PRESS_TIME: Duration = Duration::from_millis(4000);
         if dt < MIN_PRESS_TIME {
             debug!("too short press {} {}", t0, t1);
             continue;
