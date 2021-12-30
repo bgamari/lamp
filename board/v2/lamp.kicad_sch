@@ -4569,7 +4569,7 @@
     (property "Value" "4.7u" (id 1) (at 115.316 179.578 0)
       (effects (font (size 1.27 1.27)) (justify left))
     )
-    (property "Footprint" "Capacitor_SMD:C_0603_1608Metric" (id 2) (at 113.3602 182.245 0)
+    (property "Footprint" "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder" (id 2) (at 113.3602 182.245 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 112.395 178.435 0)
@@ -5054,7 +5054,7 @@
       (reference "C1") (unit 1) (value "100n") (footprint "Capacitor_SMD:C_0603_1608Metric")
     )
     (path "/00000000-0000-0000-0000-00005b41eebb"
-      (reference "C4") (unit 1) (value "4.7u") (footprint "Capacitor_SMD:C_0603_1608Metric")
+      (reference "C4") (unit 1) (value "4.7u") (footprint "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder")
     )
     (path "/00000000-0000-0000-0000-00005b3b4dac"
       (reference "C5") (unit 1) (value "4.7u") (footprint "Capacitor_SMD:C_0603_1608Metric")

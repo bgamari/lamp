@@ -27,3 +27,4 @@ Started with STM32F030F4P6
  * Change TLV333 to use correct SC-70 package
  * Fix values of Buck converter's bootstrap and bypass capacitors to 2.2uF
  * Connect JTAG RESET line
+ * Increase size of LDO input capacitor's (C4) package to 0805
