@@ -113,7 +113,7 @@ impl ActiveState {
             while ! s.is_active() {
                 embassy::time::Timer::after(Duration::from_millis(10)).await;
                 debug!("suspending");
-                suspend().await;
+                suspend();
             }
         }
     }
@@ -121,7 +121,7 @@ impl ActiveState {
 
 const DO_SUSPEND: bool = ! cfg!(feature="no_sleep");
 
-pub async fn suspend() {
+pub fn suspend() {
     unsafe {
         debug!("suspend");
         if DO_SUSPEND {
