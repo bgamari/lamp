@@ -193,11 +193,19 @@ async fn feedback(
                     let isense_mA = reg.read_isense_mA();
                     info!("Isense {} mA / {} mA", isense_mA, setpoint_mA);
                     if isense_mA < setpoint_mA - I_TOL {
-                        info!("up {}", out_cp);
-                        out_cp -= STEP;
+                        if out_cp > 0 {
+                            info!("up {}", out_cp);
+                            out_cp -= STEP;
+                        } else {
+                            info!("need up");
+                        }
                     } else if isense_mA > setpoint_mA + I_TOL {
-                        info!("down {}", out_cp);
-                        out_cp += STEP;
+                        if out_cp < 255 {
+                            info!("down {}", out_cp);
+                            out_cp += STEP;
+                        } else {
+                            info!("need down");
+                        }
                     }
                     reg.set_output_dac(out_cp);
 
